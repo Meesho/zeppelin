@@ -34,18 +34,22 @@ import org.apache.zeppelin.kotlin.KotlinInterpreter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * SparkInterpreter of Java implementation. It delegates to different scala version AbstractSparkScalaInterpreter.
@@ -112,29 +116,96 @@ public class SparkInterpreter extends AbstractInterpreter {
           conf.set(SparkStringConstants.SCHEDULER_MODE_PROP_NAME, "FAIR");
         }
       }
-      // use local mode for embedded spark mode when spark.master is not found
-      if (!conf.contains(SparkStringConstants.MASTER_PROP_NAME)) {
-        if (conf.contains("master")) {
-          conf.set(SparkStringConstants.MASTER_PROP_NAME, conf.get("master"));
-        } else {
-          String masterEnv = System.getenv(SparkStringConstants.MASTER_ENV_NAME);
-          conf.set(SparkStringConstants.MASTER_PROP_NAME,
-                  masterEnv == null ? SparkStringConstants.DEFAULT_MASTER_VALUE : masterEnv);
-        }
-      }
-      this.innerInterpreter = loadSparkScalaInterpreter(conf);
-      this.innerInterpreter.open();
 
-      sc = this.innerInterpreter.getSparkContext();
-      jsc = JavaSparkContext.fromSparkContext(sc);
-      sparkVersion = SparkVersion.fromVersionString(sc.version());
-      if (enableSupportedVersionCheck && sparkVersion.isUnsupportedVersion()) {
-        throw new Exception("This is not officially supported spark version: " + sparkVersion
-            + "\nYou can set zeppelin.spark.enableSupportedVersionCheck to false if you really" +
-            " want to try this version of spark.");
+      // Check if we should use Spark Connect with Dataproc
+      boolean useDataproc = Boolean.parseBoolean(getProperty("spark.connect.use.dataproc", "false"));
+      if (useDataproc) {
+        String clusterName = getProperty("spark.connect.dataproc.cluster.name");
+        String zone = getProperty("spark.connect.dataproc.zone");
+        
+        if (StringUtils.isBlank(clusterName) || StringUtils.isBlank(zone)) {
+          throw new InterpreterException("spark.connect.dataproc.cluster.name and spark.connect.dataproc.zone must be set when using Spark Connect with Dataproc");
+        }
+
+        // Get the internal IP of the Dataproc master node
+        String masterIp = getDataprocMasterInternalIp(clusterName, zone);
+        
+        // Configure Spark Connect settings
+        // TODO: can we directly use masterIP & port to connect to Dataproc?
+        // conf.set("spark.master", "local[*]");
+        // conf.set("spark.connect.gateway.address", masterIp);
+        // conf.set("spark.connect.gateway.port", getProperty("spark.connect.gateway.port", "15002"));
+        
+        // Configure SSL if enabled
+        boolean sslEnabled = Boolean.parseBoolean(getProperty("spark.connect.gateway.ssl.enabled", "false"));
+        if (sslEnabled) {
+          conf.set("spark.connect.gateway.ssl.enabled", "true");
+          String truststore = getProperty("spark.connect.gateway.ssl.truststore");
+          String truststorePassword = getProperty("spark.connect.gateway.ssl.truststore.password");
+          if (StringUtils.isNotBlank(truststore)) {
+            conf.set("spark.connect.gateway.ssl.truststore", truststore);
+          }
+          if (StringUtils.isNotBlank(truststorePassword)) {
+            conf.set("spark.connect.gateway.ssl.truststore.password", truststorePassword);
+          }
+        }
+
+        // Add Delta Lake dependencies
+        conf.set("spark.jars.packages", "io.delta:delta-core_2.12:3.0.0,io.delta:delta-storage:3.0.0");
+
+        // Create SparkSession with Spark Connect settings
+        SparkSession.Builder builder = spark = SparkSession.builder.remote(f"sc://{masterIp}:8080").getOrCreate()
+        if (conf.get("spark.sql.catalogImplementation", "in-memory").equalsIgnoreCase("hive")
+                || conf.get("zeppelin.spark.useHiveContext", "false").equalsIgnoreCase("true")) {
+          boolean hiveSiteExisted =
+                  Thread.currentThread().getContextClassLoader().getResource("hive-site.xml") != null;
+          if (hiveSiteExisted && hiveClassesArePresent()) {
+            sparkSession = builder.enableHiveSupport().getOrCreate();
+            LOGGER.info("Created Spark session with Hive support using Spark Connect");
+          } else {
+            sparkSession = builder.getOrCreate();
+            LOGGER.info("Created Spark session without Hive support using Spark Connect");
+          }
+        } else {
+          sparkSession = builder.getOrCreate();
+          LOGGER.info("Created Spark session using Spark Connect");
+        }
+
+        // Initialize contexts from SparkSession
+        sc = sparkSession.sparkContext();
+        jsc = JavaSparkContext.fromSparkContext(sc);
+        sparkVersion = SparkVersion.fromVersionString(sc.version());
+        if (enableSupportedVersionCheck && sparkVersion.isUnsupportedVersion()) {
+          throw new Exception("This is not officially supported spark version: " + sparkVersion
+              + "\nYou can set zeppelin.spark.enableSupportedVersionCheck to false if you really" +
+              " want to try this version of spark.");
+        }
+        sqlContext = sparkSession.sqlContext();
+      } else {
+        // use local mode for embedded spark mode when spark.master is not found
+        if (!conf.contains(SparkStringConstants.MASTER_PROP_NAME)) {
+          if (conf.contains("master")) {
+            conf.set(SparkStringConstants.MASTER_PROP_NAME, conf.get("master"));
+          } else {
+            String masterEnv = System.getenv(SparkStringConstants.MASTER_ENV_NAME);
+            conf.set(SparkStringConstants.MASTER_PROP_NAME,
+                    masterEnv == null ? SparkStringConstants.DEFAULT_MASTER_VALUE : masterEnv);
+          }
+        }
+        this.innerInterpreter = loadSparkScalaInterpreter(conf);
+        this.innerInterpreter.open();
+
+        sc = this.innerInterpreter.getSparkContext();
+        jsc = JavaSparkContext.fromSparkContext(sc);
+        sparkVersion = SparkVersion.fromVersionString(sc.version());
+        if (enableSupportedVersionCheck && sparkVersion.isUnsupportedVersion()) {
+          throw new Exception("This is not officially supported spark version: " + sparkVersion
+              + "\nYou can set zeppelin.spark.enableSupportedVersionCheck to false if you really" +
+              " want to try this version of spark.");
+        }
+        sqlContext = this.innerInterpreter.getSqlContext();
+        sparkSession = this.innerInterpreter.getSparkSession();
       }
-      sqlContext = this.innerInterpreter.getSqlContext();
-      sparkSession = this.innerInterpreter.getSparkSession();
 
       SESSION_NUM.incrementAndGet();
     } catch (Exception e) {
@@ -331,6 +402,65 @@ public class SparkInterpreter extends AbstractInterpreter {
 
   public AbstractSparkScalaInterpreter getInnerInterpreter() {
     return innerInterpreter;
+  }
+
+  /**
+   * Get the internal IP address of the Dataproc master node using gcloud command.
+   * 
+   * @param clusterName The name of the Dataproc cluster
+   * @param zone The GCP zone where the cluster is located
+   * @return The internal IP address of the master node
+   * @throws InterpreterException If the command fails or the IP cannot be determined
+   */
+  private String getDataprocMasterInternalIp(String clusterName, String zone) throws InterpreterException {
+    try {
+      // Use absolute path to gcloud if available
+      String gcloudPath = "/usr/bin/gcloud";  // Standard install location
+      if (!new File(gcloudPath).exists()) {
+        gcloudPath = "gcloud";  // Fallback to PATH lookup
+      }
+      
+      // Prepare environment with custom config path
+      Map<String, String> env = new HashMap<>(System.getenv());
+      env.put("CLOUDSDK_CONFIG", "/tmp/gcloud-temp-config");
+      
+      // Build the command to get the master node's internal IP
+      List<String> command = Arrays.asList(
+          gcloudPath, "compute", "instances", "describe", 
+          clusterName + "-m",  // Dataproc master node naming convention
+          "--zone", zone,
+          "--format=get(networkInterfaces[0].networkIP)"
+      );
+      
+      // Execute the command
+      ProcessBuilder processBuilder = new ProcessBuilder(command);
+      processBuilder.environment().putAll(env);
+      Process process = processBuilder.start();
+      
+      // Read the output
+      try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        String ip = reader.readLine();
+        
+        // Wait for the process to complete
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+          // Read error output
+          try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+            String errorOutput = errorReader.lines().collect(Collectors.joining("\n"));
+            throw new InterpreterException("Failed to get Dataproc master IP: " + errorOutput);
+          }
+        }
+        
+        if (StringUtils.isBlank(ip)) {
+          throw new InterpreterException("Failed to get Dataproc master IP: Empty response");
+        }
+        
+        LOGGER.info("Dataproc master internal IP: {}", ip);
+        return ip;
+      }
+    } catch (IOException | InterruptedException e) {
+      throw new InterpreterException("Failed to get Dataproc master IP: " + e.getMessage(), e);
+    }
   }
 
 }
