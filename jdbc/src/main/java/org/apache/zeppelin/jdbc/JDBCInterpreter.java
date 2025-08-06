@@ -875,7 +875,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
                   .replace("\n", " ")
                   .replace("\r", " ")
                   .replace("\t", " ");
-          ValidationRequest request = new ValidationRequest(sqlToValidate, userName);
+          ValidationRequest request = new ValidationRequest(sqlToValidate, userName, interpreterName);
           try {
             ValidationResponse response = sendValidationRequest(request);
             if (response.isPreSubmitFail()) {
