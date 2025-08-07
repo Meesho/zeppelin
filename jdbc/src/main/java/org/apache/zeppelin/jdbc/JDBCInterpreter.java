@@ -371,7 +371,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
     connection.setRequestMethod("POST");
     connection.setRequestProperty("Content-Type", "application/json");
     connection.setDoOutput(true); // Enable sending request body
-  return connection;
+    return connection;
   }
 
   private static void sendRequest(HttpURLConnection connection, ValidationRequest request) throws Exception {
@@ -875,8 +875,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
                   .replace("\n", " ")
                   .replace("\r", " ")
                   .replace("\t", " ");
-          LOGGER.info("interpreter name: {} :::: {}",interpreterName, getInterpreterGroup().getId());
-          ValidationRequest request = new ValidationRequest(sqlToValidate, userName,getInterpreterGroup().getId(), interpreterName);
+          ValidationRequest request = new ValidationRequest(sqlToValidate, userName, interpreterName);
           try {
             ValidationResponse response = sendValidationRequest(request);
             if (response.isPreSubmitFail()) {
