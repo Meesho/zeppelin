@@ -8,6 +8,7 @@ public class ValidationResponse {
     private boolean preSubmitFail;
     private boolean failFast;
     private boolean failedByDeprecatedTable;
+    private String errorHeader;
     private String message;
 
     // Getters and Setters
@@ -33,6 +34,14 @@ public class ValidationResponse {
 
     public void setFailedByDeprecatedTable(boolean failedByDeprecatedTable) {
         this.failedByDeprecatedTable = failedByDeprecatedTable;
+    }
+
+    public String getErrorHeader() {
+        return errorHeader;
+    }
+
+    public void setErrorHeader(String errorHeader) {
+        this.errorHeader = errorHeader;
     }
 
     public String getMessage() {
@@ -61,6 +70,9 @@ public class ValidationResponse {
             if (jsonObject.has("failed_by_deprecated_table") && !jsonObject.get("failed_by_deprecated_table").isJsonNull()) {
                 response.setFailedByDeprecatedTable(jsonObject.get("failed_by_deprecated_table").getAsBoolean());
             }
+            if (jsonObject.has("error_header") && !jsonObject.get("error_header").isJsonNull()) {
+                response.setErrorHeader(jsonObject.get("error_header").getAsString());
+            }
             if (jsonObject.has("message") && !jsonObject.get("message").isJsonNull()) {
                 response.setMessage(jsonObject.get("message").getAsString());
             }
@@ -68,6 +80,7 @@ public class ValidationResponse {
             response.setPreSubmitFail(false);
             response.setFailFast(false);
             response.setFailedByDeprecatedTable(false);
+            response.setErrorHeader(""); // Default error header
             response.setMessage(""); // Default message
         }
         return response;

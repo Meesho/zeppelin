@@ -879,9 +879,12 @@ public class JDBCInterpreter extends KerberosInterpreter {
           try {
             ValidationResponse response = sendValidationRequest(request);
             if (response.isPreSubmitFail()) {
-              String outputMessage = response.getMessage();
-              context.out.write(outputMessage);
-              context.getLocalProperties().put(CANCEL_REASON, outputMessage);
+              String errorHeader = response.getErrorHeader();
+              context.out.write(errorHeader);
+              
+              String detailedMessage = response.getMessage();
+              context.getLocalProperties().put(CANCEL_REASON, detailedMessage);
+              
               cancel(context);
               return new InterpreterResult(Code.ERROR);
             }
