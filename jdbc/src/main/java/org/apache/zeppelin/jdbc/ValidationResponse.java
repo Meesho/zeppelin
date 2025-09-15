@@ -72,9 +72,13 @@ public class ValidationResponse {
             }
             if (jsonObject.has("error_header") && !jsonObject.get("error_header").isJsonNull()) {
                 response.setErrorHeader(jsonObject.get("error_header").getAsString());
+            } else {
+                response.setErrorHeader("");
             }
             if (jsonObject.has("message") && !jsonObject.get("message").isJsonNull()) {
                 response.setMessage(jsonObject.get("message").getAsString());
+            } else {
+                response.setMessage("");
             }
         } else {
             response.setPreSubmitFail(false);
