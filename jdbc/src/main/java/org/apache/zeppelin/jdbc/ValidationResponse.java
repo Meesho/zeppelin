@@ -6,11 +6,11 @@ import com.google.gson.JsonObject;
 
 public class ValidationResponse {
     private boolean preSubmitFail;
-    private boolean newVersion;
     private boolean failFast;
     private boolean failedByDeprecatedTable;
     private String errorHeader;
     private String message;
+    private String version;
 
     // Getters and Setters
     public boolean isPreSubmitFail() {
@@ -21,12 +21,12 @@ public class ValidationResponse {
         this.preSubmitFail = preSubmitFail;
     }
 
-    public boolean isNewVersion() {
-        return newVersion;
+    public String getVersion() {
+        return version;
     }
 
-    public void setNewVersion(boolean newVersion) {
-        this.newVersion = newVersion;
+    public void setVersion(String version) {
+        this.version = version;
     }
 
     public boolean isFailFast() {
@@ -89,10 +89,10 @@ public class ValidationResponse {
             } else {
                 response.setMessage("");
             }
-            if (jsonObject.has("new_version") && !jsonObject.get("new_version").isJsonNull()) {
-                response.setNewVersion(jsonObject.get("new_version").getAsBoolean());
+            if (jsonObject.has("version") && !jsonObject.get("version").isJsonNull()) {
+                response.setVersion(jsonObject.get("version").getAsString());
             } else {
-                response.setNewVersion(false);
+                response.setVersion("v1");
             }
         } else {
             response.setPreSubmitFail(false);
@@ -100,6 +100,7 @@ public class ValidationResponse {
             response.setFailedByDeprecatedTable(false);
             response.setErrorHeader(""); // Default error header
             response.setMessage(""); // Default message
+            response.setVersion("v1"); // Default version
         }
         return response;
     }

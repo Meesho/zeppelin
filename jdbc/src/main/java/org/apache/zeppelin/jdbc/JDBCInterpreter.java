@@ -879,7 +879,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
           try {
             ValidationResponse response = sendValidationRequest(request);
             if (response.isPreSubmitFail()) {
-              if(!response.isNewVersion()) {
+              if(response.getVersion() == "v1") {
                 String outputMessage = response.getMessage();
                 StringBuilder finalOutput = new StringBuilder();
 
