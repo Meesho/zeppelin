@@ -879,48 +879,57 @@ public class JDBCInterpreter extends KerberosInterpreter {
           try {
             ValidationResponse response = sendValidationRequest(request);
             if (response.isPreSubmitFail()) {
-              String outputMessage = response.getMessage();
-              StringBuilder finalOutput = new StringBuilder();
+              if(response.getVersion() == "v1") {
+                String outputMessage = response.getMessage();
+                StringBuilder finalOutput = new StringBuilder();
 
-              if (response.isFailFast()) {
-                context.out.write("Query Error: Partition Filters Missing\n" +
-                        "Your query failed because some tables are missing partition filters. To avoid this, please ensure partition filters are applied to improve performance.\n");
-                JSONObject jsonObject = new JSONObject(outputMessage);
-                finalOutput.append("The following table(s) are missing partition filters:\n");
+                if (response.isFailFast()) {
+                  context.out.write("Query Error: Partition Filters Missing\n" +
+                          "Your query failed because some tables are missing partition filters. To avoid this, please ensure partition filters are applied to improve performance.\n");
+                  JSONObject jsonObject = new JSONObject(outputMessage);
+                  finalOutput.append("The following table(s) are missing partition filters:\n");
 
-                JSONArray tableNames = jsonObject.names();
-                if (tableNames != null) {
-                  for (int i = 0; i < tableNames.length(); i++) {
-                    String table = tableNames.getString(i);
-                    JSONArray partitions = jsonObject.getJSONArray(table);
-                    finalOutput.append("Table: ").append(table).append(", Partition filter's: ");
+                  JSONArray tableNames = jsonObject.names();
+                  if (tableNames != null) {
+                    for (int i = 0; i < tableNames.length(); i++) {
+                      String table = tableNames.getString(i);
+                      JSONArray partitions = jsonObject.getJSONArray(table);
+                      finalOutput.append("Table: ").append(table).append(", Partition filter's: ");
 
-                    for (int j = 0; j < partitions.length(); j++) {
-                      finalOutput.append(partitions.getString(j));
-                      if (j < partitions.length() - 1) {
-                        finalOutput.append(", ");
+                      for (int j = 0; j < partitions.length(); j++) {
+                        finalOutput.append(partitions.getString(j));
+                        if (j < partitions.length() - 1) {
+                          finalOutput.append(", ");
+                        }
                       }
+                      finalOutput.append("\n");
                     }
-                    finalOutput.append("\n");
                   }
-                }
-              } else if (response.isFailedByDeprecatedTable()) {
-                context.out.write("Query Error: Restricted Table Used\n");
-                JSONObject jsonObject = new JSONObject(outputMessage);
-                finalOutput.append("It seems you're trying to use a restricted table:\n");
+                } else if (response.isFailedByDeprecatedTable()) {
+                  context.out.write("Query Error: Restricted Table Used\n");
+                  JSONObject jsonObject = new JSONObject(outputMessage);
+                  finalOutput.append("It seems you're trying to use a restricted table:\n");
 
-                JSONArray tableNames = jsonObject.names();
-                if (tableNames != null) {
-                  for (int i = 0; i < tableNames.length(); i++) {
-                    String table = tableNames.getString(i);
-                    finalOutput.append("Use: ").append(jsonObject.getString(table)).append(" in place of ").append(table).append("\n");
+                  JSONArray tableNames = jsonObject.names();
+                  if (tableNames != null) {
+                    for (int i = 0; i < tableNames.length(); i++) {
+                      String table = tableNames.getString(i);
+                      finalOutput.append("Use: ").append(jsonObject.getString(table)).append(" in place of ").append(table).append("\n");
+                    }
                   }
+                }else if (outputMessage.contains("UnAuthorized Query")) {
+                    context.out.write("Query Error: UnAuthorized Query\n");
+                    finalOutput.append("You are not authorized to execute this query.\n");
                 }
-              }else if (outputMessage.contains("UnAuthorized Query")) {
-                  context.out.write("Query Error: UnAuthorized Query\n");
-                  finalOutput.append("You are not authorized to execute this query.\n");
+                context.getLocalProperties().put(CANCEL_REASON, finalOutput.toString());
+              } else {
+                String errorHeader = response.getErrorHeader();
+                context.out.write(errorHeader);
+                
+                String detailedMessage = response.getMessage();
+                context.getLocalProperties().put(CANCEL_REASON, detailedMessage);
               }
-              context.getLocalProperties().put(CANCEL_REASON, finalOutput.toString());
+              
               cancel(context);
               return new InterpreterResult(Code.ERROR);
             }

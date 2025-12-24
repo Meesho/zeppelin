@@ -8,7 +8,9 @@ public class ValidationResponse {
     private boolean preSubmitFail;
     private boolean failFast;
     private boolean failedByDeprecatedTable;
+    private String errorHeader;
     private String message;
+    private String version;
 
     // Getters and Setters
     public boolean isPreSubmitFail() {
@@ -17,6 +19,14 @@ public class ValidationResponse {
 
     public void setPreSubmitFail(boolean preSubmitFail) {
         this.preSubmitFail = preSubmitFail;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
     }
 
     public boolean isFailFast() {
@@ -33,6 +43,14 @@ public class ValidationResponse {
 
     public void setFailedByDeprecatedTable(boolean failedByDeprecatedTable) {
         this.failedByDeprecatedTable = failedByDeprecatedTable;
+    }
+
+    public String getErrorHeader() {
+        return errorHeader;
+    }
+
+    public void setErrorHeader(String errorHeader) {
+        this.errorHeader = errorHeader;
     }
 
     public String getMessage() {
@@ -61,14 +79,28 @@ public class ValidationResponse {
             if (jsonObject.has("failed_by_deprecated_table") && !jsonObject.get("failed_by_deprecated_table").isJsonNull()) {
                 response.setFailedByDeprecatedTable(jsonObject.get("failed_by_deprecated_table").getAsBoolean());
             }
+            if (jsonObject.has("error_header") && !jsonObject.get("error_header").isJsonNull()) {
+                response.setErrorHeader(jsonObject.get("error_header").getAsString());
+            } else {
+                response.setErrorHeader("");
+            }
             if (jsonObject.has("message") && !jsonObject.get("message").isJsonNull()) {
                 response.setMessage(jsonObject.get("message").getAsString());
+            } else {
+                response.setMessage("");
+            }
+            if (jsonObject.has("version") && !jsonObject.get("version").isJsonNull()) {
+                response.setVersion(jsonObject.get("version").getAsString());
+            } else {
+                response.setVersion("v1");
             }
         } else {
             response.setPreSubmitFail(false);
             response.setFailFast(false);
             response.setFailedByDeprecatedTable(false);
+            response.setErrorHeader(""); // Default error header
             response.setMessage(""); // Default message
+            response.setVersion("v1"); // Default version
         }
         return response;
     }
