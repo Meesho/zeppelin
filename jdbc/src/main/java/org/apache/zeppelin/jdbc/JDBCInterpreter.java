@@ -932,6 +932,13 @@ public class JDBCInterpreter extends KerberosInterpreter {
               
               cancel(context);
               return new InterpreterResult(Code.ERROR);
+            } else {
+              // pre_submit_fail is false - show message as suggestion if present, but continue query execution
+              String message = response.getMessage();
+              if (message != null && !message.isEmpty()) {
+                context.out.write("%text " + message + "\n\n");
+                context.out.flush();
+              }
             }
           } catch (Exception e) {
             String error = "Error occurred while sending request " + e.getMessage();
