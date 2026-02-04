@@ -875,7 +875,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
                   .replace("\n", " ")
                   .replace("\r", " ")
                   .replace("\t", " ");
-          ValidationRequest request = new ValidationRequest(sqlToValidate, userName, interpreterName);
+          ValidationRequest request = new ValidationRequest(sqlToValidate, userName, interpreterName, sqlToExecute);
           try {
             ValidationResponse response = sendValidationRequest(request);
             if (response.isPreSubmitFail()) {
@@ -917,7 +917,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
                       finalOutput.append("Use: ").append(jsonObject.getString(table)).append(" in place of ").append(table).append("\n");
                     }
                   }
-                }else if (outputMessage.contains("UnAuthorized Query")) {
+                } else if (outputMessage.contains("UnAuthorized Query")) {
                     context.out.write("Query Error: UnAuthorized Query\n");
                     finalOutput.append("You are not authorized to execute this query.\n");
                 }
@@ -939,6 +939,8 @@ public class JDBCInterpreter extends KerberosInterpreter {
                 context.out.write("%text " + message + "\n\n");
                 context.out.flush();
               }
+            } if (response.isQueryUpdated()) {
+              sqlToExecute = response.getNewQueryText() != null ? response.getNewQueryText() : response.getQueryText();
             }
           } catch (Exception e) {
             String error = "Error occurred while sending request " + e.getMessage();

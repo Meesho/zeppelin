@@ -11,6 +11,9 @@ public class ValidationResponse {
     private String errorHeader;
     private String message;
     private String version;
+    private boolean isQueryUpdated;
+    private String queryText;
+    private String newQueryText;
 
     // Getters and Setters
     public boolean isPreSubmitFail() {
@@ -61,6 +64,30 @@ public class ValidationResponse {
         this.message = message;
     }
 
+    public boolean isQueryUpdated() {
+        return isQueryUpdated;
+    }
+
+    public void setQueryUpdated(boolean isQueryUpdated) {
+        this.isQueryUpdated = isQueryUpdated;
+    }
+    
+    public String getQueryText() {
+        return queryText;
+    }
+
+    public void setQueryText(String queryText) {
+        this.queryText = queryText;
+    }
+    
+    public String getNewQueryText() {
+        return newQueryText;
+    }
+
+    public void setNewQueryText(String newQueryText) {
+        this.newQueryText = newQueryText;
+    }
+
     public static ValidationResponse fromJson(String jsonResponse) {
         Gson gson = new Gson();
         ValidationResponse response = new ValidationResponse();
@@ -94,6 +121,21 @@ public class ValidationResponse {
             } else {
                 response.setVersion("v1");
             }
+            if (jsonObject.has("is_query_updated") && !jsonObject.get("is_query_updated").isJsonNull()) {
+                response.setQueryUpdated(jsonObject.get("is_query_updated").getAsBoolean());
+            } else {
+                response.setQueryUpdated(false);
+            }
+            if (jsonObject.has("query_text") && !jsonObject.get("query_text").isJsonNull()) {
+                response.setQueryText(jsonObject.get("query_text").getAsString());
+            } else {
+                response.setQueryText("");
+            }
+            if (jsonObject.has("new_query_text") && !jsonObject.get("new_query_text").isJsonNull()) {
+                response.setNewQueryText(jsonObject.get("new_query_text").getAsString());
+            } else {
+                response.setNewQueryText(null);
+            }
         } else {
             response.setPreSubmitFail(false);
             response.setFailFast(false);
@@ -101,6 +143,9 @@ public class ValidationResponse {
             response.setErrorHeader(""); // Default error header
             response.setMessage(""); // Default message
             response.setVersion("v1"); // Default version
+            response.setQueryUpdated(false);
+            response.setQueryText("");
+            response.setNewQueryText(null);
         }
         return response;
     }
