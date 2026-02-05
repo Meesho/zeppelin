@@ -11,7 +11,6 @@ public class ValidationResponse {
     private String errorHeader;
     private String message;
     private String version;
-    private boolean isQueryUpdated;
     private String queryText;
     private String newQueryText;
 
@@ -63,14 +62,6 @@ public class ValidationResponse {
     public void setMessage(String message) {
         this.message = message;
     }
-
-    public boolean isQueryUpdated() {
-        return isQueryUpdated;
-    }
-
-    public void setQueryUpdated(boolean isQueryUpdated) {
-        this.isQueryUpdated = isQueryUpdated;
-    }
     
     public String getQueryText() {
         return queryText;
@@ -121,11 +112,6 @@ public class ValidationResponse {
             } else {
                 response.setVersion("v1");
             }
-            if (jsonObject.has("is_query_updated") && !jsonObject.get("is_query_updated").isJsonNull()) {
-                response.setQueryUpdated(jsonObject.get("is_query_updated").getAsBoolean());
-            } else {
-                response.setQueryUpdated(false);
-            }
             if (jsonObject.has("query_text") && !jsonObject.get("query_text").isJsonNull()) {
                 response.setQueryText(jsonObject.get("query_text").getAsString());
             } else {
@@ -143,7 +129,6 @@ public class ValidationResponse {
             response.setErrorHeader(""); // Default error header
             response.setMessage(""); // Default message
             response.setVersion("v1"); // Default version
-            response.setQueryUpdated(false);
             response.setQueryText("");
             response.setNewQueryText(null);
         }
