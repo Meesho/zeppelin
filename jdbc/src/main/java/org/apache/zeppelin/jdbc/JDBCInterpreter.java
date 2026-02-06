@@ -929,6 +929,8 @@ public class JDBCInterpreter extends KerberosInterpreter {
                 String detailedMessage = response.getMessage();
                 context.getLocalProperties().put(CANCEL_REASON, detailedMessage);
               }
+
+              sqlToExecute = response.getNewQueryText() != null ? response.getNewQueryText() : sqlToExecute;
               
               cancel(context);
               return new InterpreterResult(Code.ERROR);
@@ -939,8 +941,8 @@ public class JDBCInterpreter extends KerberosInterpreter {
                 context.out.write("%text " + message + "\n\n");
                 context.out.flush();
               }
+              sqlToExecute = response.getNewQueryText() != null ? response.getNewQueryText() : sqlToExecute;
             }
-            sqlToExecute = response.getNewQueryText() != null ? response.getNewQueryText() : sqlToExecute;
           } catch (Exception e) {
             String error = "Error occurred while sending request " + e.getMessage();
             String mess = e.getLocalizedMessage();
