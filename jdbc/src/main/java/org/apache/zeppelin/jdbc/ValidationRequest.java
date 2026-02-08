@@ -1,9 +1,19 @@
 package org.apache.zeppelin.jdbc;
 
+import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
+
 public class ValidationRequest {
+    @SerializedName("query_text")
     private String queryText;
+    
+    @SerializedName("user")
     private String user;
+    
+    @SerializedName("interpreter_name")
     private String interpreterName;
+    
+    @SerializedName("raw_query_text")
     private String rawQueryText;
 
     public ValidationRequest(String queryText, String user, String interpreterName, String rawQueryText) {
@@ -14,7 +24,8 @@ public class ValidationRequest {
     }
 
     public String toJson() {
-        return "{\"query_text\":\"" + queryText + "\",\"user\":\"" + user + "\",\"interpreter_name\":\"" + interpreterName + "\",\"raw_query_text\":\"" + rawQueryText + "\"}";
+        Gson gson = new Gson();
+        return gson.toJson(this);
     }
 }
 

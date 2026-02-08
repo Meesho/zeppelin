@@ -929,8 +929,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
                 String detailedMessage = response.getMessage();
                 context.getLocalProperties().put(CANCEL_REASON, detailedMessage);
               }
-
-              sqlToExecute = response.getNewQueryText() != null ? response.getNewQueryText() : sqlToExecute;
               
               cancel(context);
               return new InterpreterResult(Code.ERROR);
