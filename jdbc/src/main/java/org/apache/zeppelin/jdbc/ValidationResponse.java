@@ -11,7 +11,7 @@ public class ValidationResponse {
     private String errorHeader;
     private String message;
     private String version;
-    private String queryText;
+    private String rawQueryText;
     private String newQueryText;
 
     // Getters and Setters
@@ -63,12 +63,12 @@ public class ValidationResponse {
         this.message = message;
     }
     
-    public String getQueryText() {
-        return queryText;
+    public String getRawQueryText() {
+        return rawQueryText;
     }
 
-    public void setQueryText(String queryText) {
-        this.queryText = queryText;
+    public void setRawQueryText(String rawQueryText) {
+        this.rawQueryText = rawQueryText;
     }
     
     public String getNewQueryText() {
@@ -112,10 +112,10 @@ public class ValidationResponse {
             } else {
                 response.setVersion("v1");
             }
-            if (jsonObject.has("query_text") && !jsonObject.get("query_text").isJsonNull()) {
-                response.setQueryText(jsonObject.get("query_text").getAsString());
+            if (jsonObject.has("raw_query_text") && !jsonObject.get("raw_query_text").isJsonNull()) {
+                response.setRawQueryText(jsonObject.get("raw_query_text").getAsString());
             } else {
-                response.setQueryText("");
+                response.setRawQueryText("");
             }
             if (jsonObject.has("new_query_text") && !jsonObject.get("new_query_text").isJsonNull()) {
                 response.setNewQueryText(jsonObject.get("new_query_text").getAsString());
@@ -129,7 +129,7 @@ public class ValidationResponse {
             response.setErrorHeader(""); // Default error header
             response.setMessage(""); // Default message
             response.setVersion("v1"); // Default version
-            response.setQueryText("");
+            response.setRawQueryText("");
             response.setNewQueryText(null);
         }
         return response;
