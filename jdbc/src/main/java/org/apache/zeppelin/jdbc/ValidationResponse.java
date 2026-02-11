@@ -13,6 +13,7 @@ public class ValidationResponse {
     private String version;
     private String rawQueryText;
     private String newQueryText;
+    private String targetCluster;
 
     // Getters and Setters
     public boolean isPreSubmitFail() {
@@ -79,6 +80,14 @@ public class ValidationResponse {
         this.newQueryText = newQueryText;
     }
 
+    public String getTargetCluster() {
+        return targetCluster;
+    }
+
+    public void setTargetCluster(String targetCluster) {
+        this.targetCluster = targetCluster;
+    }
+
     public static ValidationResponse fromJson(String jsonResponse) {
         Gson gson = new Gson();
         ValidationResponse response = new ValidationResponse();
@@ -122,6 +131,11 @@ public class ValidationResponse {
             } else {
                 response.setNewQueryText(null);
             }
+            if (jsonObject.has("target_cluster") && !jsonObject.get("target_cluster").isJsonNull()) {
+                response.setTargetCluster(jsonObject.get("target_cluster").getAsString());
+            } else {
+                response.setTargetCluster(null);
+            }
         } else {
             response.setPreSubmitFail(false);
             response.setFailFast(false);
@@ -131,6 +145,7 @@ public class ValidationResponse {
             response.setVersion("v1"); // Default version
             response.setRawQueryText("");
             response.setNewQueryText(null);
+            response.setTargetCluster(null);
         }
         return response;
     }
