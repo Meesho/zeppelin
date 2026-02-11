@@ -804,6 +804,56 @@ public class JDBCInterpreter extends KerberosInterpreter {
     ResultSet resultSet = null;
     String paragraphId = context.getParagraphId();
     String user = getUser(context);
+    
+    String interpreterName = getInterpreterGroup().getId();
+    String userName = getUser(context);
+    String sqlToValidate = sql
+            .replace("\n", " ")
+            .replace("\r", " ")
+            .replace("\t", " ");
+    
+    ValidationRequest request = new ValidationRequest(sqlToValidate, userName, 
+                                                                interpreterName, sql);
+    ValidationResponse response = null;
+    // String effectiveDbPrefix = dbPrefix;
+    
+    try {
+      response = sendValidationRequest(request);
+
+      context.out.write("base properties map: " + basePropertiesMap.toString() + "\n");
+      context.out.write("dbPrefix: " + dbPrefix + "\n");
+      context.out.flush();
+      
+      if (response.getTargetCluster() != null && 
+          !response.getTargetCluster().isEmpty()) {
+        String targetClusterPrefix = response.getTargetCluster();
+
+        if (!targetClusterPrefix.equals(dbPrefix)) {
+          // Verify the target cluster exists in configuration
+          if (basePropertiesMap.containsKey(targetClusterPrefix)) {
+            LOGGER.info("Long-range query detected. Routing from '{}' to '{}' cluster", 
+                      dbPrefix, targetClusterPrefix);
+            
+            try {
+              context.out.write("%text Long-range query detected. " +
+                               "Automatically routing to optimized cluster: " + 
+                               targetClusterPrefix + "\n\n");
+              context.out.flush();
+            } catch (IOException e) {
+              LOGGER.warn("Failed to write redirection notification", e);
+            }
+            
+            dbPrefix = targetClusterPrefix;
+          } else {
+            LOGGER.warn("Target cluster '{}' not found in configuration. " +
+                       "Using requested cluster '{}'", 
+                       targetClusterPrefix, dbPrefix);
+          }
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.warn("Failed to call validation API, using requested cluster: {}", dbPrefix, e);
+    }
 
     try {
       connection = getConnection(dbPrefix, context);
@@ -839,8 +889,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
         LOGGER.info("Execute sql: " + sqlToExecute);
         statement = connection.createStatement();
 
-        String interpreterName = getInterpreterGroup().getId();
-
         if (interpreterName != null && interpreterName.startsWith("spark_rca_")) {
           statement.setQueryTimeout(10800); // 10800 seconds = 3 hours
         }
@@ -870,14 +918,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
                     Boolean.parseBoolean(getProperty("hive.log.display", "true")), this);
           }
 
-          String userName = getUser(context);
-          String sqlToValidate = sqlToExecute
-                  .replace("\n", " ")
-                  .replace("\r", " ")
-                  .replace("\t", " ");
-          ValidationRequest request = new ValidationRequest(sqlToValidate, userName, interpreterName);
           try {
-            ValidationResponse response = sendValidationRequest(request);
             if (response.isPreSubmitFail()) {
               if(response.getVersion() == "v1") {
                 String outputMessage = response.getMessage();
@@ -917,7 +958,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
                       finalOutput.append("Use: ").append(jsonObject.getString(table)).append(" in place of ").append(table).append("\n");
                     }
                   }
-                }else if (outputMessage.contains("UnAuthorized Query")) {
+                } else if (outputMessage.contains("UnAuthorized Query")) {
                     context.out.write("Query Error: UnAuthorized Query\n");
                     finalOutput.append("You are not authorized to execute this query.\n");
                 }
@@ -939,6 +980,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
                 context.out.write("%text " + message + "\n\n");
                 context.out.flush();
               }
+              sqlToExecute = response.getNewQueryText() != null ? response.getNewQueryText() : sqlToExecute;
             }
           } catch (Exception e) {
             String error = "Error occurred while sending request " + e.getMessage();

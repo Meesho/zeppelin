@@ -11,6 +11,9 @@ public class ValidationResponse {
     private String errorHeader;
     private String message;
     private String version;
+    private String rawQueryText;
+    private String newQueryText;
+    private String targetCluster;
 
     // Getters and Setters
     public boolean isPreSubmitFail() {
@@ -60,6 +63,30 @@ public class ValidationResponse {
     public void setMessage(String message) {
         this.message = message;
     }
+    
+    public String getRawQueryText() {
+        return rawQueryText;
+    }
+
+    public void setRawQueryText(String rawQueryText) {
+        this.rawQueryText = rawQueryText;
+    }
+    
+    public String getNewQueryText() {
+        return newQueryText;
+    }
+
+    public void setNewQueryText(String newQueryText) {
+        this.newQueryText = newQueryText;
+    }
+
+    public String getTargetCluster() {
+        return targetCluster;
+    }
+
+    public void setTargetCluster(String targetCluster) {
+        this.targetCluster = targetCluster;
+    }
 
     public static ValidationResponse fromJson(String jsonResponse) {
         Gson gson = new Gson();
@@ -94,6 +121,21 @@ public class ValidationResponse {
             } else {
                 response.setVersion("v1");
             }
+            if (jsonObject.has("raw_query_text") && !jsonObject.get("raw_query_text").isJsonNull()) {
+                response.setRawQueryText(jsonObject.get("raw_query_text").getAsString());
+            } else {
+                response.setRawQueryText("");
+            }
+            if (jsonObject.has("new_query_text") && !jsonObject.get("new_query_text").isJsonNull()) {
+                response.setNewQueryText(jsonObject.get("new_query_text").getAsString());
+            } else {
+                response.setNewQueryText(null);
+            }
+            if (jsonObject.has("target_cluster") && !jsonObject.get("target_cluster").isJsonNull()) {
+                response.setTargetCluster(jsonObject.get("target_cluster").getAsString());
+            } else {
+                response.setTargetCluster(null);
+            }
         } else {
             response.setPreSubmitFail(false);
             response.setFailFast(false);
@@ -101,6 +143,9 @@ public class ValidationResponse {
             response.setErrorHeader(""); // Default error header
             response.setMessage(""); // Default message
             response.setVersion("v1"); // Default version
+            response.setRawQueryText("");
+            response.setNewQueryText(null);
+            response.setTargetCluster(null);
         }
         return response;
     }
