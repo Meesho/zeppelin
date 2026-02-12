@@ -1107,9 +1107,10 @@ public class JDBCInterpreter extends KerberosInterpreter {
       cmd = "set STATEMENT_TIMEOUT=10800;\n" + cmd;
       LOGGER.debug("InterpreterName: {}, SQL command with timeout: '{}'", interpreterName, cmd);
     }
+    final String finalCmd = cmd;
     
     if (!isRefreshMode(context)) {
-      return executeSql(cmd, context);
+      return executeSql(finalCmd, context);
     } else {
       int refreshInterval = Integer.parseInt(context.getLocalProperties().get("refreshInterval"));
       paragraphCancelMap.put(context.getParagraphId(), false);
@@ -1120,7 +1121,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
       refreshExecutor.scheduleAtFixedRate(() -> {
         context.out.clear(false);
         try {
-          InterpreterResult result = executeSql(cmd, context);
+          InterpreterResult result = executeSql(finalCmd, context);
           context.out.flush();
           interpreterResultRef.set(result);
           if (result.code() != Code.SUCCESS) {
