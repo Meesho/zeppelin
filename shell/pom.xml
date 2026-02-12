@@ -23,7 +23,7 @@
   <parent>
     <artifactId>zeppelin-interpreter-parent</artifactId>
     <groupId>org.apache.zeppelin</groupId>
-    <version>0.11.0-SNAPSHOT</version>
+    <version>0.11.2</version>
     <relativePath>../zeppelin-interpreter-parent/pom.xml</relativePath>
   </parent>
 
@@ -37,8 +37,7 @@
     <!--library versions -->
     <pty4j.version>0.9.3</pty4j.version>
     <jinjava.version>2.4.0</jinjava.version>
-    <guava.version>24.1.1-jre</guava.version>
-    <gson.version>2.2</gson.version>
+    <guava.version>32.0.0-jre</guava.version>
   </properties>
 
   <!-- pty4j library not in maven central repository (http://repo.maven.apache.org/maven2) -->
@@ -83,6 +82,10 @@
         <exclusion>
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
