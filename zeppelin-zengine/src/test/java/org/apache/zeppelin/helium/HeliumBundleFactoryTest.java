@@ -17,10 +17,11 @@
 package org.apache.zeppelin.helium;
 
 import static org.apache.zeppelin.helium.HeliumBundleFactory.HELIUM_LOCAL_REPO;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.apache.zeppelin.helium.HeliumPackage.newHeliumPackage;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.eirslett.maven.plugins.frontend.lib.InstallationException;
 import com.github.eirslett.maven.plugins.frontend.lib.TaskRunnerException;
@@ -32,16 +33,16 @@ import java.util.LinkedList;
 import java.util.List;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.conf.ZeppelinConfiguration.ConfVars;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class HeliumBundleFactoryTest {
   private HeliumBundleFactory hbf;
   private File nodeInstallationDir;
   private String zeppelinHomePath;
 
-  @Before
+  @BeforeEach
   public void setUp() throws InstallationException, TaskRunnerException, IOException {
     zeppelinHomePath = System.getProperty(ConfVars.ZEPPELIN_HOME.getVarName());
     System.setProperty(ConfVars.ZEPPELIN_HOME.getVarName(), "../");
@@ -55,7 +56,7 @@ public class HeliumBundleFactoryTest {
     hbf.copyFrameworkModulesToInstallPath(true);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws IOException {
     if (null != zeppelinHomePath) {
       System.setProperty(ConfVars.ZEPPELIN_HOME.getVarName(), zeppelinHomePath);
@@ -72,7 +73,7 @@ public class HeliumBundleFactoryTest {
   @Test
   public void downloadPackage() throws TaskRunnerException {
     HeliumPackage pkg =
-        new HeliumPackage(
+        newHeliumPackage(
             HeliumType.VISUALIZATION,
             "lodash",
             "lodash",
@@ -89,7 +90,7 @@ public class HeliumBundleFactoryTest {
   @Test
   public void bundlePackage() throws IOException, TaskRunnerException {
     HeliumPackage pkg =
-        new HeliumPackage(
+        newHeliumPackage(
             HeliumType.VISUALIZATION,
             "zeppelin-bubblechart",
             "zeppelin-bubblechart",
@@ -114,7 +115,7 @@ public class HeliumBundleFactoryTest {
     String localPkg = resDir + "/../../../src/test/resources/helium/vis1";
 
     HeliumPackage pkg =
-        new HeliumPackage(
+        newHeliumPackage(
             HeliumType.VISUALIZATION,
             "vis1",
             "vis1",
@@ -135,7 +136,7 @@ public class HeliumBundleFactoryTest {
     String localPkg = resDir + "/../../../src/test/resources/helium/vis2";
 
     HeliumPackage pkg =
-        new HeliumPackage(
+        newHeliumPackage(
             HeliumType.VISUALIZATION,
             "vis2",
             "vis2",
@@ -161,7 +162,7 @@ public class HeliumBundleFactoryTest {
     String resDir = new File(res.getFile()).getParent();
 
     HeliumPackage pkgV1 =
-        new HeliumPackage(
+        newHeliumPackage(
             HeliumType.VISUALIZATION,
             "zeppelin-bubblechart",
             "zeppelin-bubblechart",
@@ -172,7 +173,7 @@ public class HeliumBundleFactoryTest {
             "icon");
 
     HeliumPackage pkgV2 =
-        new HeliumPackage(
+        newHeliumPackage(
             HeliumType.VISUALIZATION,
             "zeppelin-bubblechart",
             "zeppelin-bubblechart",
