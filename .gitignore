@@ -30,7 +30,6 @@ conf/keystore
 conf/truststore
 conf/interpreter.json
 conf/notebook-authorization.json
-conf/shiro.ini
 conf/credentials.json
 conf/helium.json
 
@@ -55,8 +54,6 @@ zeppelin-web/yarn.lock
 .Rhistory
 /R/
 
-# scio
-.bigquery/
 
 # project level
 /logs/
@@ -69,6 +66,7 @@ zeppelin-web/yarn.lock
 /warehouse/
 /notebook/
 /local-repo/
+/notebook_*/
 
 **/sessions/
 **/data/
@@ -98,6 +96,12 @@ Thumbs.db
 # intelliJ IDEA project files
 .idea/
 *.iml
+
+# Jetbrains Fleet project files
+.fleet/
+
+# vscode project files
+.vscode/
 
 # maven target files
 target/
@@ -131,3 +135,6 @@ tramp
 
 # jEnv file
 .java-version
+
+# pyenv file
+.python-version

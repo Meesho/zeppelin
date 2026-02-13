@@ -18,25 +18,26 @@ package org.apache.zeppelin.helium;
 
 import com.google.gson.Gson;
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import static org.apache.zeppelin.helium.HeliumPackage.newHeliumPackage;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HeliumLocalRegistryTest {
   private File tmpDir;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     tmpDir = new File(System.getProperty("java.io.tmpdir") + "/ZeppelinLTest_" + System.currentTimeMillis());
     tmpDir.mkdirs();
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws IOException {
     FileUtils.deleteDirectory(tmpDir);
   }
@@ -50,7 +51,7 @@ public class HeliumLocalRegistryTest {
 
     // when
     Gson gson = new Gson();
-    HeliumPackage pkg1 = new HeliumPackage(HeliumType.APPLICATION,
+    HeliumPackage pkg1 = newHeliumPackage(HeliumType.APPLICATION,
         "app1",
         "desc1",
         "artifact1",
