@@ -22,19 +22,20 @@ import org.apache.zeppelin.display.ui.OptionInput.ParamOption;
 import org.apache.zeppelin.display.ui.Password;
 import org.apache.zeppelin.display.ui.Select;
 import org.apache.zeppelin.display.ui.TextBox;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-class InputTest {
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+public class InputTest {
 
   @Test
-  void testFormExtraction() {
+  public void testFormExtraction() {
     // textbox form
     String script = "${input_form=}";
     Map<String, Input> forms = Input.extractSimpleQueryForm(script, false);
@@ -116,7 +117,7 @@ class InputTest {
 
 
   @Test
-  void testFormSubstitution() {
+  public void testFormSubstitution() {
     // test form substitution without new forms
     String script = "INPUT=${input_form=}SELECTED=${select_form(Selection Form)=" +
         ",s_op1|s_op2|s_op3}\nCHECKED=${checkbox:checkbox_form=c_op1|c_op2,c_op1|c_op2|c_op3}";

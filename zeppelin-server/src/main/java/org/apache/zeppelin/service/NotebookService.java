@@ -24,8 +24,6 @@ import static org.apache.zeppelin.interpreter.InterpreterResult.Code.ERROR;
 import static org.apache.zeppelin.scheduler.Job.Status.ABORT;
 
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -238,12 +236,6 @@ public class NotebookService {
     }
 
     notePath = notePath.replace("\r", " ").replace("\n", " ");
-
-    notePath = URLDecoder.decode(notePath, StandardCharsets.UTF_8.toString());
-    if (notePath.endsWith("/")) {
-      throw new IOException("Note name shouldn't end with '/'");
-    }
-
     int pos = notePath.lastIndexOf("/");
     if ((notePath.length() - pos) > 255) {
       throw new IOException("Note name must be less than 255");
@@ -879,62 +871,17 @@ public class NotebookService {
           return null;
         }
 
-        if (!zConf.isZeppelinNotebookCronEnable()) {
-          boolean hasCronSettings = false;
+        if (!(Boolean) note.getConfig().get("isZeppelinNotebookCronEnable")) {
           if (config.get("cron") != null) {
-            LOGGER.warn("cron should be null when cron is disabled");
-            hasCronSettings = true;
-          }
-          if (config.get("cronExecutingUser") != null) {
-            LOGGER.warn("cronExecutingUser should be null when cron is disabled");
-            hasCronSettings = true;
-          }
-          if (config.get("cronExecutingRoles") != null) {
-            LOGGER.warn("cronExecutingRoles should be null when cron is disabled");
-            hasCronSettings = true;
-          }
-          if (hasCronSettings) {
-            callback.onFailure(new IllegalArgumentException("Wrong configs"), context);
-            return null;
-          }
-        } else {
-          AuthenticationInfo requestingAuth = new AuthenticationInfo((String)config.get("cronExecutingUser"),(String) config.get("cronExecutingRoles"), null);
-
-          String requestCronUser = requestingAuth.getUser();
-          Set<String> requestCronRoles = requestingAuth.getRoles();
-
-          if (!authorizationService.hasRunPermission(Collections.singleton(requestCronUser), note.getId())) {
-            LOGGER.error("Wrong cronExecutingUser: {}", requestCronUser);
-            callback.onFailure(new IllegalArgumentException(requestCronUser), context);
-            return null;
-          } else {
-            // This part should be restarted but we need to prepare to notice who can be a cron user in advance
-            if (!context.getUserAndRoles().contains(requestCronUser)) {
-              LOGGER.error("Wrong cronExecutingUser: {}", requestCronUser);
-              callback.onFailure(new IllegalArgumentException(requestCronUser), context);
-              return null;
-            }
-
-            if (!context.getUserAndRoles().containsAll(requestCronRoles)) {
-              LOGGER.error("Wrong cronExecutingRoles: {}", requestCronRoles);
-              callback.onFailure(new IllegalArgumentException(requestCronRoles.toString()), context);
-              return null;
-            }
-          }
-
-          if (!(Boolean) note.getConfig().get("isZeppelinNotebookCronEnable")) {
-            if (config.get("cron") != null) {
-              config.remove("cron");
-            }
-          }
-          boolean cronUpdated = isCronUpdated(config, note.getConfig());
-          if (cronUpdated) {
-            schedulerService.refreshCron(note.getId());
+            config.remove("cron");
           }
         }
-
+        boolean cronUpdated = isCronUpdated(config, note.getConfig());
         note.setName(name);
         note.setConfig(config);
+        if (cronUpdated) {
+          schedulerService.refreshCron(note.getId());
+        }
 
         notebook.updateNote(note, context.getAutheInfo());
         callback.onSuccess(note, context);

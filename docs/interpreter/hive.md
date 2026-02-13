@@ -25,7 +25,7 @@ limitations under the License.
 
 ## Important Notice
 
-Hive Interpreter has been deprecated and merged into JDBC Interpreter. 
+Hive Interpreter will be deprecated and merged into JDBC Interpreter. 
 You can use Hive Interpreter by using JDBC Interpreter with same functionality. 
 See the example below of settings and dependencies.
 
@@ -36,19 +36,19 @@ See the example below of settings and dependencies.
     <th>Value</th>
   </tr>
   <tr>
-    <td>default.driver</td>
+    <td>hive.driver</td>
     <td>org.apache.hive.jdbc.HiveDriver</td>
   </tr>
   <tr>
-    <td>default.url</td>
+    <td>hive.url</td>
     <td>jdbc:hive2://localhost:10000</td>
   </tr>
   <tr>
-    <td>default.user</td>
+    <td>hive.user</td>
     <td>hiveUser</td>
   </tr>
   <tr>
-    <td>default.password</td>
+    <td>hive.password</td>
     <td>hivePassword</td>
   </tr>
 </table>
@@ -103,6 +103,31 @@ See the example below of settings and dependencies.
     <td><b>( Optional ) </b>Other properties used by the driver</td>
   </tr>
   <tr>
+    <td>${prefix}.driver</td>
+    <td></td>
+    <td>Driver class path of <code>%hive(${prefix})</code> </td>
+  </tr>
+  <tr>
+    <td>${prefix}.url</td>
+    <td></td>
+    <td>Url of <code>%hive(${prefix})</code> </td>
+  </tr>
+  <tr>
+    <td>${prefix}.user</td>
+    <td></td>
+    <td><b>( Optional ) </b>Username of the connection of <code>%hive(${prefix})</code> </td>
+  </tr>
+  <tr>
+    <td>${prefix}.password</td>
+    <td></td>
+    <td><b>( Optional ) </b>Password of the connection of <code>%hive(${prefix})</code> </td>
+  </tr>
+  <tr>
+    <td>${prefix}.xxx</td>
+    <td></td>
+    <td><b>( Optional ) </b>Other properties used by the driver of <code>%hive(${prefix})</code> </td>
+  </tr>
+  <tr>
     <td>zeppelin.jdbc.hive.timeout.threshold</td>
     <td>60000</td>
     <td>Timeout for hive job timeout</td>
@@ -119,6 +144,8 @@ See the example below of settings and dependencies.
   </tr>
 </table>
 
+This interpreter provides multiple configuration with `${prefix}`. User can set a multiple connection properties by this prefix. It can be used like `%hive(${prefix})`.
+
 ## Overview
 
 The [Apache Hive](https://hive.apache.org/) ™ data warehouse software facilitates querying and managing large datasets 
@@ -132,6 +159,14 @@ Basically, you can use
 
 ```sql
 %hive
+select * from my_table;
+```
+
+or
+
+```sql
+%hive(etl)
+-- 'etl' is a ${prefix}
 select * from my_table;
 ```
 

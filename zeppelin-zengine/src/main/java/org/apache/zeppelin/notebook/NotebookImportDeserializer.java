@@ -47,7 +47,6 @@ public class NotebookImportDeserializer implements JsonDeserializer<Date> {
       try {
         return new SimpleDateFormat(format, Locale.US).parse(jsonElement.getAsString());
       } catch (ParseException e) {
-        // try the next format
       }
     }
     throw new JsonParseException("Unparsable date: \"" + jsonElement.getAsString()

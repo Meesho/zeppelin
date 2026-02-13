@@ -16,84 +16,83 @@
  */
 package org.apache.zeppelin.utils;
 
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Test;
 
-class CorsUtilsTest {
+public class CorsUtilsTest {
 
-  @AfterEach
+  @After
   public void cleanup() {
     ZeppelinConfiguration.reset();
   }
   @Test
-  void isInvalid() throws URISyntaxException, UnknownHostException {
+  public void isInvalid() throws URISyntaxException, UnknownHostException {
     assertFalse(CorsUtils.isValidOrigin("http://127.0.1.1", ZeppelinConfiguration.create()));
   }
 
   @Test
-  void isInvalidFromConfig()
+  public void isInvalidFromConfig()
       throws URISyntaxException, UnknownHostException {
     assertFalse(CorsUtils.isValidOrigin("http://otherinvalidhost.com",
         ZeppelinConfiguration.create("zeppelin-site.xml")));
   }
 
   @Test
-  void isLocalhost() throws URISyntaxException, UnknownHostException {
+  public void isLocalhost() throws URISyntaxException, UnknownHostException {
     assertTrue(CorsUtils.isValidOrigin("http://localhost", ZeppelinConfiguration.create()));
   }
 
   @Test
-  void isLocalMachine() throws URISyntaxException, UnknownHostException {
+  public void isLocalMachine() throws URISyntaxException, UnknownHostException {
     String origin = "http://" + InetAddress.getLocalHost().getHostName();
-    assertTrue(CorsUtils.isValidOrigin(origin, ZeppelinConfiguration.create()),
-      "Origin " + origin + " is not allowed. Please check your hostname.");
+    assertTrue("Origin " + origin + " is not allowed. Please check your hostname.",
+        CorsUtils.isValidOrigin(origin, ZeppelinConfiguration.create()));
   }
 
   @Test
-  void isValidFromConfig()
+  public void isValidFromConfig()
       throws URISyntaxException, UnknownHostException {
     assertTrue(CorsUtils.isValidOrigin("http://otherhost.com",
       ZeppelinConfiguration.create("zeppelin-site.xml")));
   }
 
   @Test
-  void isValidFromStar()
+  public void isValidFromStar()
       throws URISyntaxException, UnknownHostException {
     assertTrue(CorsUtils.isValidOrigin("http://anyhost.com",
       ZeppelinConfiguration.create("zeppelin-site-star.xml")));
   }
 
   @Test
-  void nullOrigin()
+  public void nullOrigin()
       throws URISyntaxException, UnknownHostException {
     assertFalse(CorsUtils.isValidOrigin(null,
       ZeppelinConfiguration.create("zeppelin-site.xml")));
   }
 
   @Test
-  void nullOriginWithStar()
+  public void nullOriginWithStar()
       throws URISyntaxException, UnknownHostException {
     assertTrue(CorsUtils.isValidOrigin(null,
       ZeppelinConfiguration.create("zeppelin-site-star.xml")));
   }
 
   @Test
-  void emptyOrigin()
+  public void emptyOrigin()
       throws URISyntaxException, UnknownHostException {
     assertFalse(CorsUtils.isValidOrigin("",
       ZeppelinConfiguration.create("zeppelin-site.xml")));
   }
 
   @Test
-  void notAURIOrigin()
+  public void notAURIOrigin()
       throws URISyntaxException, UnknownHostException {
     assertFalse(CorsUtils.isValidOrigin("test123",
       ZeppelinConfiguration.create("zeppelin-site.xml")));

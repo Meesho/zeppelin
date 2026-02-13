@@ -53,6 +53,7 @@ import org.apache.zeppelin.interpreter.remote.RemoteInterpreter;
 import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
 import org.apache.zeppelin.resource.ResourcePool;
 import org.apache.zeppelin.scheduler.Job;
+import org.apache.zeppelin.scheduler.JobListener;
 import org.apache.zeppelin.scheduler.JobWithProgressPoller;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.user.Credentials;
@@ -104,12 +105,12 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
     super(generateId(), null);
   }
 
-  public Paragraph(String paragraphId, Note note, ParagraphJobListener listener) {
+  public Paragraph(String paragraphId, Note note, JobListener listener) {
     super(paragraphId, generateId(), listener);
     this.note = note;
   }
 
-  public Paragraph(Note note, ParagraphJobListener listener) {
+  public Paragraph(Note note, JobListener listener) {
     super(generateId(), listener);
     this.note = note;
   }
@@ -244,6 +245,7 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
     return this.note.getInterpreterFactory().getInterpreter(intpText, executionContext);
   }
 
+  @VisibleForTesting
   public void setInterpreter(Interpreter interpreter) {
     this.interpreter = interpreter;
   }
@@ -373,10 +375,18 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
         return true;
       }
     } catch (InterpreterNotFoundException e) {
-      setInterpreterNotFound(e);
+      InterpreterResult intpResult =
+          new InterpreterResult(InterpreterResult.Code.ERROR,
+                  String.format("Interpreter %s not found", this.intpText));
+      setReturn(intpResult, e);
+      setStatus(Job.Status.ERROR);
       return false;
     } catch (Throwable e) {
-      setUnexpectedException(e);
+      InterpreterResult intpResult =
+              new InterpreterResult(InterpreterResult.Code.ERROR,
+                      "Unexpected exception: " + ExceptionUtils.getStackTrace(e));
+      setReturn(intpResult, e);
+      setStatus(Job.Status.ERROR);
       return false;
     }
   }
@@ -453,7 +463,7 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
         settings.clear();
       }
 
-      LOGGER.debug("RUN : {}", script);
+      LOGGER.debug("RUN : " + script);
       try {
         InterpreterContext context = getInterpreterContext();
         InterpreterContext.set(context);
@@ -701,7 +711,7 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
    * note you can see the latest checkpoint's output.
    */
   public void checkpointOutput() {
-    LOGGER.info("Checkpoint Paragraph output for paragraph: {}", getId());
+    LOGGER.info("Checkpoint Paragraph output for paragraph: " + getId());
     this.results = new InterpreterResult(Code.SUCCESS);
     for (InterpreterResultMessage buffer : outputBuffer) {
       results.add(buffer);
@@ -836,25 +846,17 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
       }
 
     } catch (InterpreterNotFoundException e) {
-      setInterpreterNotFound(e);
+      InterpreterResult intpResult =
+              new InterpreterResult(InterpreterResult.Code.ERROR,
+                      String.format("Interpreter %s not found", this.intpText));
+      setReturn(intpResult, e);
+      setStatus(Job.Status.ERROR);
     } catch (Throwable e) {
-      setUnexpectedException(e);
+      InterpreterResult intpResult =
+              new InterpreterResult(InterpreterResult.Code.ERROR,
+                      "Unexpected exception: " + ExceptionUtils.getStackTrace(e));
+      setReturn(intpResult, e);
+      setStatus(Job.Status.ERROR);
     }
-  }
-
-  public void setInterpreterNotFound(InterpreterNotFoundException e) {
-    InterpreterResult intpResult =
-      new InterpreterResult(InterpreterResult.Code.ERROR,
-              String.format("Interpreter %s not found", this.intpText));
-    setReturn(intpResult, e);
-    setStatus(Job.Status.ERROR);
-  }
-
-  public void setUnexpectedException(Throwable e) {
-    InterpreterResult intpResult =
-      new InterpreterResult(InterpreterResult.Code.ERROR,
-        "Unexpected exception: " + ExceptionUtils.getStackTrace(e));
-    setReturn(intpResult, e);
-    setStatus(Job.Status.ERROR);
   }
 }

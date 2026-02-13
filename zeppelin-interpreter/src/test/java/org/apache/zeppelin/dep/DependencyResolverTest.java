@@ -18,28 +18,30 @@
 package org.apache.zeppelin.dep;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.eclipse.aether.RepositoryException;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Collections;
 
+import static org.junit.Assert.assertEquals;
 
-class DependencyResolverTest {
+public class DependencyResolverTest {
   private static DependencyResolver resolver;
   private static String testPath;
   private static File testCopyPath;
   private static File tmpDir;
 
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
 
-  @BeforeAll
-  static void setUp() throws Exception {
+  @BeforeClass
+  public static void setUp() throws Exception {
     tmpDir = new File(System.getProperty("java.io.tmpdir") + "/ZeppelinLTest_" +
         System.currentTimeMillis());
     testPath = tmpDir.getAbsolutePath() + "/test-repo";
@@ -47,21 +49,23 @@ class DependencyResolverTest {
     resolver = new DependencyResolver(testPath);
   }
 
-  @AfterAll
-  static void tearDown() throws Exception {
+  @AfterClass
+  public static void tearDown() throws Exception {
     FileUtils.deleteDirectory(tmpDir);
   }
 
+  @Rule
+  public final ExpectedException exception = ExpectedException.none();
 
   @Test
-  void testAddRepo() {
+  public void testAddRepo() {
     int reposCnt = resolver.getRepos().size();
     resolver.addRepo("securecentral", "https://repo1.maven.org/maven2", false);
     assertEquals(reposCnt + 1, resolver.getRepos().size());
   }
 
   @Test
-  void testDelRepo() {
+  public void testDelRepo() {
     resolver.addRepo("securecentral", "https://repo1.maven.org/maven2", false);
     int reposCnt = resolver.getRepos().size();
     resolver.delRepo("securecentral");
@@ -70,23 +74,23 @@ class DependencyResolverTest {
   }
 
   @Test
-  void testLoad() throws Exception {
+  public void testLoad() throws Exception {
     // basic load
     resolver.load("com.databricks:spark-csv_2.10:1.3.0", testCopyPath);
-    assertEquals(4, testCopyPath.list().length);
+    assertEquals(testCopyPath.list().length, 4);
     FileUtils.cleanDirectory(testCopyPath);
 
     // load with exclusions parameter
     resolver.load("com.databricks:spark-csv_2.10:1.3.0",
         Collections.singletonList("org.scala-lang:scala-library"), testCopyPath);
-    assertEquals(3, testCopyPath.list().length);
+    assertEquals(testCopyPath.list().length, 3);
     FileUtils.cleanDirectory(testCopyPath);
 
     // load from added http repository
     resolver.addRepo("httpmvn",
         "http://insecure.repo1.maven.org/maven2/", false);
     resolver.load("com.databricks:spark-csv_2.10:1.3.0", testCopyPath);
-    assertEquals(4, testCopyPath.list().length);
+    assertEquals(testCopyPath.list().length, 4);
     FileUtils.cleanDirectory(testCopyPath);
     resolver.delRepo("httpmvn");
 
@@ -94,22 +98,20 @@ class DependencyResolverTest {
     resolver.addRepo("sonatype",
         "https://oss.sonatype.org/content/repositories/ksoap2-android-releases/", false);
     resolver.load("com.google.code.ksoap2-android:ksoap2-jsoup:3.6.3", testCopyPath);
-    assertEquals(10, testCopyPath.list().length);
+    assertEquals(testCopyPath.list().length, 10);
 
     // load invalid artifact
-    assertThrows(RepositoryException.class, () -> {
-      resolver.delRepo("sonatype");
-      resolver.load("com.agimatec:agimatec-validation:0.12.0", testCopyPath);
-    });
+    resolver.delRepo("sonatype");
+    exception.expect(RepositoryException.class);
+    resolver.load("com.agimatec:agimatec-validation:0.12.0", testCopyPath);
   }
 
   @Test
-  void should_throw_exception_if_dependency_not_found() throws Exception {
-    FileNotFoundException exception = assertThrows(FileNotFoundException.class, () -> {
-      resolver.load("one.two:1.0", testCopyPath);
-    });
-    assertEquals("File system element for parameter 'source' does not exist: 'one.two:1.0'",
-        exception.getMessage());
+  public void should_throw_exception_if_dependency_not_found() throws Exception {
+    expectedException.expectMessage("Source 'one.two:1.0' does not exist");
+    expectedException.expect(FileNotFoundException.class);
+
+    resolver.load("one.two:1.0", testCopyPath);
   }
 
 }

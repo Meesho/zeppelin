@@ -24,7 +24,7 @@
     <parent>
         <artifactId>zengine-plugins-parent</artifactId>
         <groupId>org.apache.zeppelin</groupId>
-        <version>0.11.2</version>
+        <version>0.11.0-SNAPSHOT</version>
         <relativePath>../../../zeppelin-plugins</relativePath>
     </parent>
 
@@ -35,7 +35,7 @@
 
     <properties>
         <plugin.name>Launcher/K8sStandardInterpreterLauncher</plugin.name>
-        <kubernetes.client.version>5.12.4</kubernetes.client.version>
+        <kubernetes.client.version>5.3.1</kubernetes.client.version>
         <jinjava.version>2.5.4</jinjava.version>
     </properties>
 
@@ -74,11 +74,6 @@
             <version>${kubernetes.client.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -87,7 +82,7 @@
                 <artifactId>maven-enforcer-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>enforce-dependency-convergence</id>
+                        <id>enforce</id>
                         <phase>none</phase>
                     </execution>
                 </executions>

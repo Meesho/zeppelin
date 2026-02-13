@@ -634,12 +634,6 @@ public class YarnRemoteInterpreterProcess extends RemoteInterpreterProcess {
   }
 
   @Override
-  public boolean isAlive() {
-    //TODO(ZEPPELIN-5876): Implement it more accurately
-    return isRunning();
-  }
-
-  @Override
   public boolean isRunning() {
     return isYarnAppRunning.get();
   }

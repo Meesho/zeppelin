@@ -23,7 +23,7 @@
     <parent>
         <artifactId>zeppelin-interpreter-parent</artifactId>
         <groupId>org.apache.zeppelin</groupId>
-        <version>0.11.2</version>
+        <version>0.11.0-SNAPSHOT</version>
         <relativePath>../zeppelin-interpreter-parent/pom.xml</relativePath>
     </parent>
 
@@ -32,34 +32,58 @@
     <name>Zeppelin: Alluxio interpreter</name>
 
     <properties>
-        <alluxio.version>2.9.0</alluxio.version>
+        <alluxio.version>1.0.0</alluxio.version>
         <interpreter.name>alluxio</interpreter.name>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.alluxio</groupId>
-            <artifactId>alluxio-shell</artifactId>
-            <version>${alluxio.version}</version>
+              <groupId>com.google.guava</groupId>
+              <artifactId>guava</artifactId>
+              <version>15.0</version>
+        </dependency>
+
+        <dependency>
+              <groupId>org.alluxio</groupId>
+              <artifactId>alluxio-shell</artifactId>
+              <version>${alluxio.version}</version>
         </dependency>
 
         <!-- TEST -->
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>31.0.1-jre</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java</artifactId>
-            <version>3.16.1</version>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-api-mockito</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-module-junit4</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-reflect</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.alluxio</groupId>
+            <artifactId>alluxio-core-server</artifactId>
+            <version>${alluxio.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -71,12 +95,18 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <version>3.2.4</version>
+            <groupId>org.alluxio</groupId>
+            <artifactId>alluxio-underfs-local</artifactId>
+            <version>${alluxio.version}</version>
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>3.2.3</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -93,6 +123,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
+                <configuration>
+                    <skip>false</skip>
+                </configuration>
             </plugin>
         </plugins>
     </build>

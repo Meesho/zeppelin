@@ -21,35 +21,34 @@ import org.apache.commons.io.FileUtils;
 import org.apache.zeppelin.dep.DependencyResolver;
 import org.apache.zeppelin.interpreter.InterpreterOutput;
 import org.apache.zeppelin.resource.LocalResourcePool;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static org.apache.zeppelin.helium.HeliumPackage.newHeliumPackage;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 
-class ApplicationLoaderTest {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+public class ApplicationLoaderTest {
   private File tmpDir;
 
-  @BeforeEach
-  void setUp() {
+  @Before
+  public void setUp() {
     tmpDir = new File(System.getProperty("java.io.tmpdir") + "/ZeppelinLTest_" +
         System.currentTimeMillis());
     tmpDir.mkdirs();
   }
 
-  @AfterEach
-  void tearDown() throws IOException {
+  @After
+  public void tearDown() throws IOException {
     FileUtils.deleteDirectory(tmpDir);
   }
 
   @Test
-  void loadUnloadApplication() throws Exception {
+  public void loadUnloadApplication() throws Exception {
     // given
     LocalResourcePool resourcePool = new LocalResourcePool("pool1");
     DependencyResolver dep = new DependencyResolver(tmpDir.getAbsolutePath());
@@ -75,7 +74,7 @@ class ApplicationLoaderTest {
   }
 
   public HeliumPackage createPackageInfo(String className, String artifact) {
-    HeliumPackage app1 = newHeliumPackage(
+    HeliumPackage app1 = new HeliumPackage(
         HeliumType.APPLICATION,
         "name1",
         "desc1",

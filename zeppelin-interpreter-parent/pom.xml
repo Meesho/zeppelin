@@ -23,7 +23,7 @@
   <parent>
     <artifactId>zeppelin</artifactId>
     <groupId>org.apache.zeppelin</groupId>
-    <version>0.11.2</version>
+    <version>0.11.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -62,12 +62,7 @@
 
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-reload4j</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>ch.qos.reload4j</groupId>
-      <artifactId>reload4j</artifactId>
+      <artifactId>slf4j-log4j12</artifactId>
     </dependency>
 
     <dependency>
@@ -81,8 +76,8 @@
     </dependency>
 
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -101,7 +96,7 @@
           <artifactId>maven-enforcer-plugin</artifactId>
           <executions>
             <execution>
-              <id>enforce-dependency-convergence</id>
+              <id>enforce</id>
               <phase>none</phase>
             </execution>
           </executions>
@@ -112,7 +107,6 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <configuration>
-            <createDependencyReducedPom>false</createDependencyReducedPom>
             <filters>
               <filter>
                 <artifact>*:*</artifact>

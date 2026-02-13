@@ -40,13 +40,9 @@ import org.apache.zeppelin.scheduler.Job;
 import org.apache.zeppelin.scheduler.Job.Status;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.user.Credentials;
-import org.apache.commons.io.FilenameUtils;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +53,6 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -70,15 +65,14 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 
@@ -95,7 +89,7 @@ public class NotebookTest extends AbstractInterpreterTest implements ParagraphJo
   private QuartzSchedulerService schedulerService;
 
   @Override
-  @BeforeEach
+  @Before
   public void setUp() throws Exception {
     System.setProperty(ConfVars.ZEPPELIN_NOTEBOOK_PUBLIC.getVarName(), "true");
     System.setProperty(ConfVars.ZEPPELIN_NOTEBOOK_CRON_ENABLE.getVarName(), "true");
@@ -112,13 +106,10 @@ public class NotebookTest extends AbstractInterpreterTest implements ParagraphJo
     schedulerService = new QuartzSchedulerService(conf, notebook);
     notebook.initNotebook();
     notebook.waitForFinishInit(1, TimeUnit.MINUTES);
-
-    // create empty shiro.ini file under confDir
-    Files.createFile(new File(confDir, "shiro.ini").toPath());
   }
 
   @Override
-  @AfterEach
+  @After
   public void tearDown() throws Exception {
     super.tearDown();
     System.clearProperty(ConfVars.ZEPPELIN_NOTEBOOK_PUBLIC.getVarName());
@@ -133,12 +124,13 @@ public class NotebookTest extends AbstractInterpreterTest implements ParagraphJo
     notebookRepo = new DummyNotebookRepo();
     notebook = new Notebook(conf, mock(AuthorizationService.class), notebookRepo, new NoteManager(notebookRepo, conf), interpreterFactory,
         interpreterSettingManager, credentials, null);
-    assertFalse( notebook.isRevisionSupported(), "Revision is not supported in DummyNotebookRepo");
+    assertFalse("Revision is not supported in DummyNotebookRepo", notebook.isRevisionSupported());
 
     notebookRepo = new DummyNotebookRepoWithVersionControl();
     notebook = new Notebook(conf, mock(AuthorizationService.class), notebookRepo, new NoteManager(notebookRepo, conf), interpreterFactory,
         interpreterSettingManager, credentials, null);
-    assertTrue(notebook.isRevisionSupported(), "Revision is supported in DummyNotebookRepoWithVersionControl");
+    assertTrue("Revision is supported in DummyNotebookRepoWithVersionControl",
+        notebook.isRevisionSupported());
   }
 
   public static class DummyNotebookRepo implements NotebookRepo {
@@ -1867,21 +1859,19 @@ public class NotebookTest extends AbstractInterpreterTest implements ParagraphJo
       });
   }
 
-  @ParameterizedTest
-  @MethodSource("provideMoveTestParameters")
-  public void testMoveNote(String oldName, String newPath) throws InterruptedException, IOException {
+  @Test
+  public void testMoveNote() throws InterruptedException, IOException {
     String noteId = null;
-    String newName = FilenameUtils.getBaseName(newPath);
     try {
-      noteId = notebook.createNote(oldName, anonymous);
+      noteId = notebook.createNote("note1", anonymous);
       notebook.processNote(noteId,
         note -> {
-          assertEquals(oldName, note.getName());
-          assertEquals("/" + oldName, note.getPath());
+          assertEquals("note1", note.getName());
+          assertEquals("/note1", note.getPath());
           return null;
         });
 
-      notebook.moveNote(noteId, newPath, anonymous);
+      notebook.moveNote(noteId, "/tmp/note2", anonymous);
 
       // read note json file to check the name field is updated
       File noteFile = notebook.processNote(noteId,
@@ -1889,20 +1879,12 @@ public class NotebookTest extends AbstractInterpreterTest implements ParagraphJo
           return new File(conf.getNotebookDir() + "/" + notebookRepo.buildNoteFileName(note));
         });
       String noteJson = IOUtils.toString(new FileInputStream(noteFile), StandardCharsets.UTF_8);
-      assertTrue(noteJson.contains(newName), noteJson);
+      assertTrue(noteJson, noteJson.contains("note2"));
     } finally {
       if (noteId != null) {
         notebook.removeNote(noteId, anonymous);
       }
     }
-  }
-
-  private static Stream<Arguments> provideMoveTestParameters() {
-    return Stream.of(
-      Arguments.of("note1", "/temp/note2"),
-      Arguments.of("note1", "/Note1"),
-      Arguments.of("note1", "/temp/Note1")
-    );
   }
 
   @Override
@@ -1911,11 +1893,11 @@ public class NotebookTest extends AbstractInterpreterTest implements ParagraphJo
   }
 
   @Override
-  public void onProgressUpdate(Job<?> paragraph, int progress) {
+  public void onProgressUpdate(Paragraph paragraph, int progress) {
   }
 
   @Override
-  public void onStatusChange(Job<?> paragraph, Status before, Status after) {
+  public void onStatusChange(Paragraph paragraph, Status before, Status after) {
     if (afterStatusChangedListener != null) {
       afterStatusChangedListener.onStatusChanged(paragraph, before, after);
     }

@@ -23,7 +23,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document.OutputSettings;
-import org.jsoup.safety.Safelist;
+import org.jsoup.safety.Whitelist;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -93,7 +93,7 @@ public class ZeppelinRDisplay {
   private static RDisplay textDisplay(Element body) {
     // remove HTML tag while preserving whitespaces and newlines
     String text = Jsoup.clean(body.html(), "",
-      Safelist.none(), new OutputSettings().prettyPrint(false));
+      Whitelist.none(), new OutputSettings().prettyPrint(false));
     return new RDisplay(text, Type.TEXT, Code.SUCCESS);
   }
 

@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.zeppelin.rest.message;
 
 /**
  *  RenameNoteRequest rest api request message
+ *
  */
-public class RenameNoteRequest {
-  private final String name;
 
-  public RenameNoteRequest (String name){
-    this.name = name;
+public class RenameNoteRequest {
+  String name;
+
+  public RenameNoteRequest (){
+
   }
 
   public String getName() {

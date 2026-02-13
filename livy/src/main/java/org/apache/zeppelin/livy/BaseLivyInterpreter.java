@@ -19,7 +19,6 @@ package org.apache.zeppelin.livy;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 
 import org.apache.commons.lang3.StringUtils;
@@ -303,19 +302,15 @@ public abstract class BaseLivyInterpreter extends Interpreter {
       throws LivyException {
     try {
       Map<String, String> conf = new HashMap<>();
-      Map<String, String> params = new HashMap<>();
       for (Map.Entry<Object, Object> entry : getProperties().entrySet()) {
         if (entry.getKey().toString().startsWith("livy.spark.") &&
             !entry.getValue().toString().isEmpty()) {
           conf.put(entry.getKey().toString().substring(5), entry.getValue().toString());
-        } else if (entry.getKey().toString().startsWith("livy.") &&
-                !entry.getValue().toString().isEmpty()) {
-          params.put(entry.getKey().toString().substring(5), entry.getValue().toString());
         }
       }
 
       CreateSessionRequest request = new CreateSessionRequest(kind,
-          user == null || user.equals("anonymous") ? null : user, conf, params);
+          user == null || user.equals("anonymous") ? null : user, conf);
       SessionInfo sessionInfo = SessionInfo.fromJson(
           callRestAPI("/sessions", "POST", request.toJson()));
       long start = System.currentTimeMillis();
@@ -781,23 +776,15 @@ public abstract class BaseLivyInterpreter extends Interpreter {
     @SerializedName("proxyUser")
     public final String user;
     public final Map<String, String> conf;
-    public final Map<String, String> params;
 
-    CreateSessionRequest(String kind, String user, Map<String, String> conf,
-                         Map<String, String> params) {
+    CreateSessionRequest(String kind, String user, Map<String, String> conf) {
       this.kind = kind;
       this.user = user;
       this.conf = conf;
-      this.params = params;
     }
 
     public String toJson() {
-      JsonObject jsonObject = new JsonObject();
-      jsonObject.add("conf", gson.toJsonTree(conf));
-      params.forEach(jsonObject::addProperty);
-      jsonObject.addProperty("kind", kind);
-      jsonObject.addProperty("proxyUser", user);
-      return gson.toJson(jsonObject);
+      return gson.toJson(this);
     }
   }
 

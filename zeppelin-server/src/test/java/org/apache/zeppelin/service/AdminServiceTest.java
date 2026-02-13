@@ -17,16 +17,15 @@
 
 package org.apache.zeppelin.service;
 
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.log4j.Level;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
-class AdminServiceTest {
+public class AdminServiceTest {
 
   @Test
-  void testSetLoggerLevel() {
+  public void testSetLoggerLevel() {
     AdminService adminService = new AdminService();
     String testLoggerName = "test";
     org.apache.log4j.Logger logger = adminService.getLogger(testLoggerName);
@@ -41,7 +40,9 @@ class AdminServiceTest {
     }
 
     logger = adminService.getLogger(testLoggerName);
-    assertTrue((setInfo && org.apache.log4j.Level.INFO == logger.getLevel())
-      || (!setInfo && Level.DEBUG == logger.getLevel()), "Level of logger should be changed");
+    assertTrue(
+        "Level of logger should be changed",
+        (setInfo && org.apache.log4j.Level.INFO == logger.getLevel())
+            || (!setInfo && Level.DEBUG == logger.getLevel()));
   }
 }

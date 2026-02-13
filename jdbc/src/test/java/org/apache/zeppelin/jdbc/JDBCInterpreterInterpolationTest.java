@@ -23,8 +23,8 @@ import org.apache.zeppelin.interpreter.InterpreterResultMessage;
 import org.apache.zeppelin.resource.LocalResourcePool;
 import org.apache.zeppelin.resource.ResourcePool;
 import org.apache.zeppelin.user.AuthenticationInfo;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -36,12 +36,12 @@ import java.util.List;
 import java.util.Properties;
 
 import static java.lang.String.format;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 /**
  * JDBC interpreter Z-variable interpolation unit tests.
  */
-class JDBCInterpreterInterpolationTest extends BasicJDBCTestCaseAdapter {
+public class JDBCInterpreterInterpolationTest extends BasicJDBCTestCaseAdapter {
 
   private static String jdbcConnection;
   private InterpreterContext interpreterContext;
@@ -56,8 +56,7 @@ class JDBCInterpreterInterpolationTest extends BasicJDBCTestCaseAdapter {
     return jdbcConnection;
   }
 
-  @Override
-  @BeforeEach
+  @Before
   public void setUp() throws Exception {
     Class.forName("org.h2.Driver");
     Connection connection = DriverManager.getConnection(getJdbcConnection());
@@ -78,7 +77,7 @@ class JDBCInterpreterInterpolationTest extends BasicJDBCTestCaseAdapter {
   }
 
   @Test
-  void testEnableDisableProperty() throws IOException, InterpreterException {
+  public void testEnableDisableProperty() throws IOException, InterpreterException {
     Properties properties = new Properties();
     properties.setProperty("common.max_count", "1000");
     properties.setProperty("common.max_retry", "3");
@@ -121,7 +120,7 @@ class JDBCInterpreterInterpolationTest extends BasicJDBCTestCaseAdapter {
   }
 
   @Test
-  void testNormalQueryInterpolation() throws IOException, InterpreterException {
+  public void testNormalQueryInterpolation() throws IOException, InterpreterException {
     Properties properties = new Properties();
     properties.setProperty("common.max_count", "1000");
     properties.setProperty("common.max_retry", "3");
@@ -164,7 +163,7 @@ class JDBCInterpreterInterpolationTest extends BasicJDBCTestCaseAdapter {
   }
 
   @Test
-  void testEscapedInterpolationPattern() throws IOException, InterpreterException {
+  public void testEscapedInterpolationPattern() throws IOException, InterpreterException {
     Properties properties = new Properties();
     properties.setProperty("common.max_count", "1000");
     properties.setProperty("common.max_retry", "3");

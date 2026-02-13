@@ -17,6 +17,8 @@
 
 package org.apache.zeppelin.rest;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -75,6 +77,7 @@ import static org.apache.zeppelin.common.Message.MSG_ID_NOT_DEFINED;
 @Singleton
 public class NotebookRestApi extends AbstractRestApi {
   private static final Logger LOGGER = LoggerFactory.getLogger(NotebookRestApi.class);
+  private static final Gson GSON = new Gson();
 
   private final ZeppelinConfiguration zConf;
   private final Notebook notebook;
@@ -83,6 +86,7 @@ public class NotebookRestApi extends AbstractRestApi {
   private final AuthorizationService authorizationService;
   private final NotebookService notebookService;
   private final JobManagerService jobManagerService;
+  private final AuthenticationService authenticationService;
   private final SchedulerService schedulerService;
 
   @Inject
@@ -104,6 +108,7 @@ public class NotebookRestApi extends AbstractRestApi {
     this.noteSearchService = search;
     this.authorizationService = authorizationService;
     this.zConf = zConf;
+    this.authenticationService = authenticationService;
     this.schedulerService = schedulerService;
   }
 
@@ -240,14 +245,16 @@ public class NotebookRestApi extends AbstractRestApi {
     checkIfUserIsOwner(noteId,
             ownerPermissionError(userAndRoles, authorizationService.getOwners(noteId)));
 
-    PermissionRequest permMap = GSON.fromJson(req, PermissionRequest.class);
+    HashMap<String, HashSet<String>> permMap =
+            GSON.fromJson(req, new TypeToken<HashMap<String, HashSet<String>>>() {
+            }.getType());
     return notebook.processNote(noteId,
       note -> {
         checkIfNoteIsNotNull(note, noteId);
-        Set<String> readers = permMap.getReaders();
-        Set<String> runners = permMap.getRunners();
-        Set<String> owners = permMap.getOwners();
-        Set<String> writers = permMap.getWriters();
+        HashSet<String> readers = permMap.get("readers");
+        HashSet<String> runners = permMap.get("runners");
+        HashSet<String> owners = permMap.get("owners");
+        HashSet<String> writers = permMap.get("writers");
 
         LOGGER.info("Set permissions to note: {} with current user:{}, owners:{}, readers:{}, runners:{}, writers:{}",
                 noteId, principal, owners, readers, runners, writers);
@@ -481,7 +488,7 @@ public class NotebookRestApi extends AbstractRestApi {
   public Response createNote(String message) throws IOException {
     String user = authenticationService.getPrincipal();
     LOGGER.info("Creating new note by JSON {}", message);
-    NewNoteRequest request = GSON.fromJson(message, NewNoteRequest.class);
+    NewNoteRequest request = NewNoteRequest.fromJson(message);
     String defaultInterpreterGroup = request.getDefaultInterpreterGroup();
     if (StringUtils.isBlank(defaultInterpreterGroup)) {
       defaultInterpreterGroup = zConf.getString(ZeppelinConfiguration.ConfVars.ZEPPELIN_INTERPRETER_GROUP_DEFAULT);
@@ -546,7 +553,7 @@ public class NotebookRestApi extends AbstractRestApi {
 
     LOGGER.info("Clone note by JSON {}", message);
     checkIfUserCanWrite(noteId, "Insufficient privileges you cannot clone this note");
-    NewNoteRequest request = GSON.fromJson(message, NewNoteRequest.class);
+    NewNoteRequest request = NewNoteRequest.fromJson(message);
     String newNoteName = null;
     String revisionId = null;
     if (request != null) {
@@ -616,7 +623,7 @@ public class NotebookRestApi extends AbstractRestApi {
       note -> {
         checkIfNoteIsNotNull(note, noteId);
         checkIfUserCanWrite(noteId, "Insufficient privileges you cannot add paragraph to this note");
-        NewParagraphRequest request = GSON.fromJson(message, NewParagraphRequest.class);
+        NewParagraphRequest request = NewParagraphRequest.fromJson(message);
         Paragraph p;
         Double indexDouble = request.getIndex();
         if (indexDouble == null) {
@@ -825,7 +832,8 @@ public class NotebookRestApi extends AbstractRestApi {
 
     Map<String, Object> params = new HashMap<>();
     if (!StringUtils.isEmpty(message)) {
-      ParametersRequest request = GSON.fromJson(message, ParametersRequest.class);
+      ParametersRequest request =
+              ParametersRequest.fromJson(message);
       params.putAll(request.getParams());
     }
 
@@ -954,7 +962,8 @@ public class NotebookRestApi extends AbstractRestApi {
 
         Map<String, Object> params = new HashMap<>();
         if (!StringUtils.isEmpty(message)) {
-          ParametersRequest request = GSON.fromJson(message, ParametersRequest.class);
+          ParametersRequest request =
+                  ParametersRequest.fromJson(message);
           params = request.getParams();
         }
         notebookService.runParagraph(note, paragraphId, paragraph.getTitle(),
@@ -993,7 +1002,8 @@ public class NotebookRestApi extends AbstractRestApi {
 
         Map<String, Object> params = new HashMap<>();
         if (!StringUtils.isEmpty(message)) {
-          ParametersRequest request = GSON.fromJson(message, ParametersRequest.class);
+          ParametersRequest request =
+                  ParametersRequest.fromJson(message);
           params = request.getParams();
         }
 
@@ -1049,7 +1059,7 @@ public class NotebookRestApi extends AbstractRestApi {
 
     LOGGER.info("Register cron job note={} request cron msg={}", noteId, message);
 
-    CronRequest request = GSON.fromJson(message, CronRequest.class);
+    CronRequest request = CronRequest.fromJson(message);
 
     // use write lock, because config is overwritten
     return notebook.processNote(noteId,

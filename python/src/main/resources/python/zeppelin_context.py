@@ -179,7 +179,7 @@ class PyZeppelinContext(object):
     def show(self, p, **kwargs):
         if hasattr(p, '__name__') and p.__name__ == "matplotlib.pyplot":
             self.show_matplotlib(p, **kwargs)
-        elif any(t.__name__ == 'DataFrame' for t in type(p).mro()):
+        elif type(p).__name__ == "DataFrame": # does not play well with sub-classes
             # `isinstance(p, DataFrame)` would req `import pandas.core.frame.DataFrame`
             # and so a dependency on pandas
             self.show_dataframe(p, **kwargs)
@@ -220,8 +220,7 @@ class PyZeppelinContext(object):
                 body_buf.write("\t")
                 body_buf.write(self.normalizeColumn(str(cell)))
             # don't print '\n' after the last row
-            rowNumber -=1
-            if rowNumber != 0:
+            if idx != (rowNumber - 1):
                 body_buf.write("\n")
         body_buf.seek(0)
         header_buf.seek(0)

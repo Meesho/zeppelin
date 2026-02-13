@@ -17,26 +17,27 @@
 
 package org.apache.zeppelin.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.Test;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertEquals;
 
-class InterpreterResultTest {
+
+public class InterpreterResultTest {
 
   @Test
-  void testTextType() {
+  public void testTextType() {
 
     InterpreterResult result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "this is a TEXT type");
-    assertEquals(InterpreterResult.Type.TEXT, result.message().get(0).getType(), "No magic");
+    assertEquals("No magic", InterpreterResult.Type.TEXT, result.message().get(0).getType());
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS, "%this is a TEXT type");
-    assertEquals(InterpreterResult.Type.TEXT, result.message().get(0).getType(), "No magic");
+    assertEquals("No magic", InterpreterResult.Type.TEXT, result.message().get(0).getType());
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS, "%\n");
     assertEquals(0, result.message().size());
   }
 
   @Test
-  void testSimpleMagicType() {
+  public void testSimpleMagicType() {
     InterpreterResult result = null;
 
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
@@ -51,62 +52,61 @@ class InterpreterResultTest {
   }
 
   @Test
-  void testComplexMagicType() {
+  public void testComplexMagicType() {
     InterpreterResult result = null;
 
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "some text before %table col1\tcol2\naaa\t123\n");
-    assertEquals(InterpreterResult.Type.TEXT, result.message().get(0).getType(),
-        "some text before magic return magic");
+    assertEquals("some text before magic return magic",
+        InterpreterResult.Type.TEXT, result.message().get(0).getType());
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "some text before\n%table col1\tcol2\naaa\t123\n");
-    assertEquals(InterpreterResult.Type.TEXT, result.message().get(0).getType(),
-        "some text before magic return magic");
-    assertEquals(InterpreterResult.Type.TABLE, result.message().get(1).getType(),
-        "some text before magic return magic");
+    assertEquals("some text before magic return magic",
+        InterpreterResult.Type.TEXT, result.message().get(0).getType());
+    assertEquals("some text before magic return magic",
+        InterpreterResult.Type.TABLE, result.message().get(1).getType());
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "%html  <h3> This is a hack </h3> %table\n col1\tcol2\naaa\t123\n");
-    assertEquals(InterpreterResult.Type.HTML, result.message().get(0).getType(),
-        "magic A before magic B return magic A");
+    assertEquals("magic A before magic B return magic A",
+        InterpreterResult.Type.HTML, result.message().get(0).getType());
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "some text before magic word %table col1\tcol2\naaa\t123\n %html  " +
             "<h3> This is a hack </h3>");
-    assertEquals(InterpreterResult.Type.TEXT, result.message().get(0).getType(),
-        "text & magic A before magic B return magic A");
+    assertEquals("text & magic A before magic B return magic A",
+        InterpreterResult.Type.TEXT, result.message().get(0).getType());
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "%table col1\tcol2\naaa\t123\n %html  <h3> This is a hack </h3> %table col1\naaa\n123\n");
-    assertEquals(InterpreterResult.Type.TABLE, result.message().get(0).getType(),
-        "magic A, magic B, magic a' return magic A");
+    assertEquals("magic A, magic B, magic a' return magic A",
+        InterpreterResult.Type.TABLE, result.message().get(0).getType());
   }
 
   @Test
-  void testSimpleMagicData() {
+  public void testSimpleMagicData() {
 
     InterpreterResult result = null;
 
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "%table col1\tcol2\naaa\t123\n");
-    assertEquals("col1\tcol2\naaa\t123\n", result.message().get(0).getData(),
-        "%table col1\tcol2\naaa\t123\n");
+    assertEquals("%table col1\tcol2\naaa\t123\n",
+        "col1\tcol2\naaa\t123\n", result.message().get(0).getData());
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "%table\ncol1\tcol2\naaa\t123\n");
-    assertEquals("col1\tcol2\naaa\t123\n", result.message().get(0).getData(),
-        "%table\ncol1\tcol2\naaa\t123\n");
+    assertEquals("%table\ncol1\tcol2\naaa\t123\n",
+        "col1\tcol2\naaa\t123\n", result.message().get(0).getData());
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "some text before magic word\n%table col1\tcol2\naaa\t123\n");
-    assertEquals("col1\tcol2\naaa\t123\n", result.message().get(1).getData(),
-        "some text before magic word\n%table col1\tcol2\naaa\t123\n");
+    assertEquals("some text before magic word\n%table col1\tcol2\naaa\t123\n",
+        "col1\tcol2\naaa\t123\n", result.message().get(1).getData());
   }
 
-  @Test
-  void testComplexMagicData() {
+  public void testComplexMagicData() {
 
     InterpreterResult result = null;
 
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "some text before\n%table col1\tcol2\naaa\t123\n");
-    assertEquals("some text before\n", result.message().get(0).getData(), "text before %table");
-    assertEquals("col1\tcol2\naaa\t123\n", result.message().get(1).getData(), "text after %table");
+    assertEquals("text before %table", "some text before\n", result.message().get(0).getData());
+    assertEquals("text after %table", "col1\tcol2\naaa\t123\n", result.message().get(1).getData());
     result = new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "%html  <h3> This is a hack </h3>\n%table\ncol1\tcol2\naaa\t123\n");
     assertEquals(" <h3> This is a hack </h3>\n", result.message().get(0).getData());
@@ -125,7 +125,7 @@ class InterpreterResultTest {
   }
 
   @Test
-  void testToString() {
+  public void testToString() {
     assertEquals("%html hello", new InterpreterResult(InterpreterResult.Code.SUCCESS,
         "%html hello").toString());
   }

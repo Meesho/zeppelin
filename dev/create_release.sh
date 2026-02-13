@@ -42,16 +42,17 @@ done
 
 RELEASE_VERSION="$1"
 GIT_TAG="$2"
+SCALA_VERSION="2.11"
 
 function make_source_package() {
   # create source package
   cd ${WORKING_DIR}
   cp -r "zeppelin" "zeppelin-${RELEASE_VERSION}"
-  ${TAR} -cvzf "zeppelin-${RELEASE_VERSION}.tgz" "zeppelin-${RELEASE_VERSION}"
+  ${TAR} cvzf "zeppelin-${RELEASE_VERSION}.tgz" "zeppelin-${RELEASE_VERSION}"
 
   echo "Signing the source package"
   cd "${WORKING_DIR}"
-  gpg --batch --pinentry-mode loopback --passphrase "${GPG_PASSPHRASE}" --armor \
+  echo "${GPG_PASSPHRASE}" | gpg --passphrase-fd 0 --armor \
     --output "zeppelin-${RELEASE_VERSION}.tgz.asc" \
     --detach-sig "${WORKING_DIR}/zeppelin-${RELEASE_VERSION}.tgz"
   ${SHASUM} -a 512 "zeppelin-${RELEASE_VERSION}.tgz" > \
@@ -77,10 +78,10 @@ function make_binary_release() {
   cat ../../src/bin_license/LICENSE >> "zeppelin-${RELEASE_VERSION}-bin-${BIN_RELEASE_NAME}/LICENSE"
   cat ../../src/bin_license/NOTICE >> "zeppelin-${RELEASE_VERSION}-bin-${BIN_RELEASE_NAME}/NOTICE"
   cp ../../src/bin_license/licenses/* "zeppelin-${RELEASE_VERSION}-bin-${BIN_RELEASE_NAME}/licenses/"
-  ${TAR} -cvzf "zeppelin-${RELEASE_VERSION}-bin-${BIN_RELEASE_NAME}.tgz" "zeppelin-${RELEASE_VERSION}-bin-${BIN_RELEASE_NAME}"
+  ${TAR} cvzf "zeppelin-${RELEASE_VERSION}-bin-${BIN_RELEASE_NAME}.tgz" "zeppelin-${RELEASE_VERSION}-bin-${BIN_RELEASE_NAME}"
 
   # sign bin package
-  gpg --batch --pinentry-mode loopback --passphrase "${GPG_PASSPHRASE}" --armor \
+  echo "${GPG_PASSPHRASE}" | gpg --passphrase-fd 0 --armor \
     --output "zeppelin-${RELEASE_VERSION}-bin-${BIN_RELEASE_NAME}.tgz.asc" \
     --detach-sig "zeppelin-${RELEASE_VERSION}-bin-${BIN_RELEASE_NAME}.tgz"
   ${SHASUM} -a 512 "zeppelin-${RELEASE_VERSION}-bin-${BIN_RELEASE_NAME}.tgz" > \
@@ -96,10 +97,8 @@ function make_binary_release() {
 
 git_clone
 make_source_package
-
-make_binary_release netinst "-Pweb-angular -pl !hbase,!jdbc,!file,!flink,!cassandra,!elasticsearch,!bigquery,!alluxio,!livy,!groovy,!java,!neo4j,!submarine,!sparql,!mongodb -am"
-
-make_binary_release all "-Pweb-angular"
+make_binary_release netinst "-Pweb-angular -Phadoop-2.6 -pl !beam,!hbase,!pig,!jdbc,!file,!flink,!ignite,!cassandra,!elasticsearch,!bigquery,!alluxio,!scio,!livy,!groovy,!sap,!java,!geode,!neo4j,!hazelcastjet,!submarine,!sparql,!mongodb,!ksql -am"
+make_binary_release all "-Pweb-angular -Phadoop-2.6"
 
 # remove non release files and dirs
 rm -rf "${WORKING_DIR}/zeppelin"

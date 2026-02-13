@@ -772,12 +772,14 @@ public class Note implements JsonSerializable {
             return;
           }
         } catch (InterpreterNotFoundException e) {
-          p.setInterpreterNotFound(e);
+          // ignore, because the following run method will fail if interpreter not found.
         } finally {
           // reset params to the original value
           p.settings.setParams(originalParams);
         }
       }
+    } catch (Exception e) {
+      throw e;
     } finally {
       if (isolated) {
         LOGGER.info("Releasing interpreters used by this note: {}", id);
@@ -1176,6 +1178,7 @@ public class Note implements JsonSerializable {
     return result;
   }
 
+  @VisibleForTesting
   public static Gson getGSON() {
     return GSON;
   }

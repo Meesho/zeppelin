@@ -70,14 +70,6 @@ public abstract class Job<T> {
     public boolean isCompleted() {
       return this == FINISHED || this == ERROR || this == ABORT;
     }
-
-    public boolean isAbort() {
-      return this == ABORT;
-    }
-
-    public boolean isFailed() {
-      return this == ERROR || this == ABORT;
-    }
   }
 
   private String jobName;
@@ -123,14 +115,8 @@ public abstract class Job<T> {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (obj == null)
-      return false;
-
-    if (!(obj instanceof Job))
-      return false;
-
-    return ((Job<?>) obj).id.equals(id);
+  public boolean equals(Object o) {
+    return ((Job) o).id.equals(id);
   }
 
   public Status getStatus() {

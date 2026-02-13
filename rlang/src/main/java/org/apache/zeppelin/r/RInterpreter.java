@@ -71,6 +71,15 @@ public class RInterpreter extends AbstractInterpreter {
     return 20403;
   }
 
+  /**
+   * Spark 2.4.3 need secret for socket communication between R process and jvm process.
+   * Sub class can override this, e.g. SparkRInterpreter
+   * @return
+   */
+  protected boolean isSecretSupported() {
+    return true;
+  }
+
   @Override
   public void open() throws InterpreterException {
     this.sparkRBackend = SparkRBackend.get();
@@ -78,7 +87,7 @@ public class RInterpreter extends AbstractInterpreter {
     synchronized (sparkRBackend) {
       if (!sparkRBackend.isStarted()) {
         try {
-          sparkRBackend.init();
+          sparkRBackend.init(isSecretSupported());
         } catch (Exception e) {
           throw new InterpreterException("Fail to init SparkRBackend", e);
         }

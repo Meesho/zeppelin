@@ -18,7 +18,6 @@ package org.apache.zeppelin.cluster.meta;
 
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Cluster operations, cluster types, encapsulation objects for keys and values
@@ -27,10 +26,10 @@ public class ClusterMetaEntity implements Serializable {
   private ClusterMetaOperation operation;
   private ClusterMetaType type;
   private String key;
-  private Map<String, Object> values = new HashMap<>();
+  private HashMap<String, Object> values = new HashMap<>();
 
   public ClusterMetaEntity(ClusterMetaOperation operation, ClusterMetaType type,
-                           String key, Map<String, Object> values) {
+                           String key, HashMap<String, Object> values) {
     this.operation = operation;
     this.type = type;
     this.key = key;
@@ -52,7 +51,7 @@ public class ClusterMetaEntity implements Serializable {
     return key;
   }
 
-  public Map<String, Object> getValues() {
+  public HashMap<String, Object> getValues() {
     return values;
   }
 }

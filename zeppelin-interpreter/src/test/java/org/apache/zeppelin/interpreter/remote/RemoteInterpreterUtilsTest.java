@@ -17,16 +17,16 @@
 
 package org.apache.zeppelin.interpreter.remote;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.Test;
 
 import java.io.IOException;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertTrue;
 
-class RemoteInterpreterUtilsTest {
+public class RemoteInterpreterUtilsTest {
 
   @Test
-  void testfindAvailablePort() throws IOException {
+  public void testfindAvailablePort() throws IOException {
     assertTrue(RemoteInterpreterUtils.findAvailablePort(":") > 0);
 
     String portRange = ":30000";

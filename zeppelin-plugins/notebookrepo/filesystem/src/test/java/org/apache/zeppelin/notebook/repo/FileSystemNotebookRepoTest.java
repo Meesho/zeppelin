@@ -26,9 +26,9 @@ import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.user.AuthenticationInfo;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,9 +37,9 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 
-class FileSystemNotebookRepoTest {
+public class FileSystemNotebookRepoTest {
 
   private ZeppelinConfiguration zConf;
   private Configuration hadoopConf;
@@ -48,8 +48,8 @@ class FileSystemNotebookRepoTest {
   private String notebookDir;
   private AuthenticationInfo authInfo = AuthenticationInfo.ANONYMOUS;
 
-  @BeforeEach
-  void setUp() throws IOException {
+  @Before
+  public void setUp() throws IOException {
     notebookDir = Files.createTempDirectory("FileSystemNotebookRepoTest").toFile().getAbsolutePath();
     zConf = ZeppelinConfiguration.create();
     System.setProperty(ZeppelinConfiguration.ConfVars.ZEPPELIN_NOTEBOOK_DIR.getVarName(), notebookDir);
@@ -59,13 +59,13 @@ class FileSystemNotebookRepoTest {
     hdfsNotebookRepo.init(zConf);
   }
 
-  @AfterEach
-  void tearDown() throws IOException {
+  @After
+  public void tearDown() throws IOException {
     FileUtils.deleteDirectory(new File(notebookDir));
   }
 
   @Test
-  void testBasics() throws IOException {
+  public void testBasics() throws IOException {
     assertEquals(0, hdfsNotebookRepo.list(authInfo).size());
 
     // create a new note
@@ -121,7 +121,7 @@ class FileSystemNotebookRepoTest {
   }
 
   @Test
-  void testComplicatedScenarios() throws IOException {
+  public void testComplicatedScenarios() throws IOException {
     // scenario_1: notebook_dir is not clean. There're some unrecognized dir and file under notebook_dir
     fs.mkdirs(new Path(notebookDir, "1/2"));
     OutputStream out = fs.create(new Path(notebookDir, "1/a.json"));

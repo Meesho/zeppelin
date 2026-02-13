@@ -18,8 +18,8 @@
 import 'headroom.js';
 import 'headroom.js/dist/angular.headroom';
 
-import 'scrollmonitor';
-import 'ap-viewport-watch';
+import 'scrollmonitor/scrollMonitor.js';
+import 'angular-viewport-watch/angular-viewport-watch.js';
 
 import 'angular-ui-grid/ui-grid.css';
 import 'angular-ui-grid';

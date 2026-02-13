@@ -25,15 +25,7 @@ import org.apache.zeppelin.interpreter.InterpreterException;
 import org.apache.zeppelin.interpreter.InterpreterGroup;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.LazyOpenInterpreter;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -42,16 +34,16 @@ import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * This test class is also used in spark interpreter module
- *
- * @author pdallig
- */
-@SuppressWarnings("java:S5786")
-public class PythonInterpreterTest extends BasePythonInterpreterTest {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+
+public class PythonInterpreterTest extends BasePythonInterpreterTest {
+  
   @Override
-  @BeforeEach
   public void setUp() throws InterpreterException {
 
     intpGroup = new InterpreterGroup();
@@ -72,7 +64,6 @@ public class PythonInterpreterTest extends BasePythonInterpreterTest {
   }
 
   @Override
-  @AfterEach
   public void tearDown() throws InterpreterException {
     intpGroup.close();
   }
@@ -108,7 +99,7 @@ public class PythonInterpreterTest extends BasePythonInterpreterTest {
   }
 
   //@Test
-  void testCancelIntp() throws InterruptedException, InterpreterException {
+  public void testCancelIntp() throws InterruptedException, InterpreterException {
     assertEquals(InterpreterResult.Code.SUCCESS,
         interpreter.interpret("a = 1\n", getInterpreterContext()).code());
     Thread t = new Thread(new infinityPythonJob());
@@ -121,7 +112,7 @@ public class PythonInterpreterTest extends BasePythonInterpreterTest {
   }
 
   @Test
-  void testPythonProcessKilled() throws InterruptedException, TimeoutException {
+  public void testPythonProcessKilled() throws InterruptedException, TimeoutException {
     final Waiter waiter = new Waiter();
     Thread thread = new Thread() {
       @Override
@@ -171,7 +162,7 @@ public class PythonInterpreterTest extends BasePythonInterpreterTest {
       fail("Should fail to open PythonInterpreter");
     } catch (InterpreterException e) {
       String stacktrace = ExceptionUtils.getStackTrace(e);
-      assertTrue(stacktrace.contains("No such file or directory"), stacktrace);
+      assertTrue(stacktrace, stacktrace.contains("No such file or directory"));
     }
   }
 }

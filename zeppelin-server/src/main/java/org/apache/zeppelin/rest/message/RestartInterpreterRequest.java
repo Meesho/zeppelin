@@ -16,18 +16,30 @@
  */
 package org.apache.zeppelin.rest.message;
 
+import com.google.gson.Gson;
+
+import org.apache.zeppelin.common.JsonSerializable;
+
 /**
  * RestartInterpreter rest api request message.
  */
-public class RestartInterpreterRequest {
+public class RestartInterpreterRequest implements JsonSerializable {
+  private static final Gson GSON = new Gson();
 
-  private final String noteId;
+  private String noteId;
 
-  public RestartInterpreterRequest(String noteId) {
-    this.noteId = noteId;
+  public RestartInterpreterRequest() {
   }
 
   public String getNoteId() {
     return noteId;
+  }
+
+  public String toJson() {
+    return GSON.toJson(this);
+  }
+
+  public static RestartInterpreterRequest fromJson(String json) {
+    return GSON.fromJson(json, RestartInterpreterRequest.class);
   }
 }

@@ -16,9 +16,8 @@
  */
 package org.apache.zeppelin.helium;
 
-import static org.apache.zeppelin.helium.HeliumPackage.newHeliumPackage;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -38,10 +37,10 @@ import org.apache.zeppelin.notebook.Paragraph;
 import org.apache.zeppelin.notebook.repo.NotebookRepo;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.user.Credentials;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class HeliumApplicationFactoryTest extends AbstractInterpreterTest {
 
@@ -51,7 +50,7 @@ public class HeliumApplicationFactoryTest extends AbstractInterpreterTest {
   private AuthenticationInfo anonymous;
 
   @Override
-  @BeforeEach
+  @Before
   public void setUp() throws Exception {
     super.setUp();
 
@@ -80,18 +79,18 @@ public class HeliumApplicationFactoryTest extends AbstractInterpreterTest {
   }
 
   @Override
-  @AfterEach
+  @After
   public void tearDown() throws Exception {
     super.tearDown();
   }
 
 
   @Test
-  @Disabled
+  @Ignore
   public void testLoadRunUnloadApplication()
       throws IOException, ApplicationException, InterruptedException {
     // given
-    HeliumPackage pkg1 = newHeliumPackage(HeliumType.APPLICATION,
+    HeliumPackage pkg1 = new HeliumPackage(HeliumType.APPLICATION,
         "name1",
         "desc1",
         "",
@@ -137,10 +136,10 @@ public class HeliumApplicationFactoryTest extends AbstractInterpreterTest {
   }
 
   @Test
-  @Disabled
+  @Ignore
   public void testUnloadOnParagraphRemove() throws IOException {
     // given
-    HeliumPackage pkg1 = newHeliumPackage(HeliumType.APPLICATION,
+    HeliumPackage pkg1 = new HeliumPackage(HeliumType.APPLICATION,
         "name1",
         "desc1",
         "",
@@ -180,10 +179,10 @@ public class HeliumApplicationFactoryTest extends AbstractInterpreterTest {
 
 
   @Test
-  @Disabled
+  @Ignore
   public void testUnloadOnInterpreterUnbind() throws IOException {
     // given
-    HeliumPackage pkg1 = newHeliumPackage(HeliumType.APPLICATION,
+    HeliumPackage pkg1 = new HeliumPackage(HeliumType.APPLICATION,
         "name1",
         "desc1",
         "",
@@ -220,7 +219,7 @@ public class HeliumApplicationFactoryTest extends AbstractInterpreterTest {
   }
 
   @Test
-  @Disabled
+  @Ignore
   public void testInterpreterUnbindOfNullReplParagraph() throws IOException {
     // create note
     String note1Id = notebook.createNote("note1", anonymous);
@@ -247,10 +246,10 @@ public class HeliumApplicationFactoryTest extends AbstractInterpreterTest {
 
 
   @Test
-  @Disabled
+  @Ignore
   public void testUnloadOnInterpreterRestart() throws IOException, InterpreterException {
     // given
-    HeliumPackage pkg1 = newHeliumPackage(HeliumType.APPLICATION,
+    HeliumPackage pkg1 = new HeliumPackage(HeliumType.APPLICATION,
         "name1",
         "desc1",
         "",

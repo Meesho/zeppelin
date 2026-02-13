@@ -16,36 +16,36 @@
  */
 package org.apache.zeppelin.rest;
 
+import static org.junit.Assert.assertTrue;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-class ConfigurationsRestApiTest extends AbstractTestRestApi {
+public class ConfigurationsRestApiTest extends AbstractTestRestApi {
   Gson gson = new Gson();
 
-  @BeforeAll
-  static void init() throws Exception {
+  @BeforeClass
+  public static void init() throws Exception {
     AbstractTestRestApi.startUp(ConfigurationsRestApi.class.getSimpleName());
   }
 
-  @AfterAll
-  static void destroy() throws Exception {
+  @AfterClass
+  public static void destroy() throws Exception {
     AbstractTestRestApi.shutDown();
   }
 
   @Test
-  void testGetAll() throws IOException {
+  public void testGetAll() throws IOException {
     CloseableHttpResponse get = httpGet("/configurations/all");
     Map<String, Object> resp = gson.fromJson(EntityUtils.toString(get.getEntity(), StandardCharsets.UTF_8),
         new TypeToken<Map<String, Object>>(){}.getType());
@@ -59,7 +59,7 @@ class ConfigurationsRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testGetViaPrefix() throws IOException {
+  public void testGetViaPrefix() throws IOException {
     final String prefix = "zeppelin.server";
     CloseableHttpResponse get = httpGet("/configurations/prefix/" + prefix);
     Map<String, Object> resp = gson.fromJson(EntityUtils.toString(get.getEntity(), StandardCharsets.UTF_8),

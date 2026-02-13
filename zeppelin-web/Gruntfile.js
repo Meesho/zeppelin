@@ -27,7 +27,7 @@ module.exports = function(grunt) {
 
   // Configurable paths for the application
   var appConfig = {
-    app: 'src',
+    app: require('./bower.json').appPath || 'src',
     dist: 'dist'
   };
 
@@ -76,6 +76,10 @@ module.exports = function(grunt) {
 
     // Watches files for changes and runs tasks based on the changed files
     watch: {
+      bower: {
+        files: ['bower.json'],
+        tasks: ['wiredep:dist', 'wiredep:test']
+      },
       html: {
         files: [
           '<%= yeoman.app %>/**/*.html'
@@ -101,7 +105,7 @@ module.exports = function(grunt) {
         files: ['Gruntfile.js']
       },
       livereload: {
-        options: {livereload: 35730,},
+        options: {livereload: 35729,},
         files: [
           '<%= yeoman.app %>/app/**/*.html',
           '<%= yeoman.app %>/*.html',
@@ -127,6 +131,40 @@ module.exports = function(grunt) {
           src: '{,*/}*.css',
           dest: '.tmp/styles/'
         }]
+      }
+    },
+
+    // Automatically inject Bower components into the app
+    wiredep: {
+      ci: {
+        src: ['<%= yeoman.app %>/index.html'],
+        ignorePath: /\.\.\//,
+        exclude: [
+        ]
+      },
+      dist: {
+        src: ['<%= yeoman.app %>/index.html'],
+        ignorePath: /\.\.\//,
+        exclude: [
+        ],
+      },
+      test: {
+        devDependencies: true,
+        src: '<%= karma.unit.configFile %>',
+        ignorePath: /\.\.\//,
+        exclude: [
+        ],
+        fileTypes: {
+          js: {
+            block: /(([\s\t]*)\/{2}\s*?bower:\s*?(\S*))(\n|\r|.)*?(\/{2}\s*endbower)/gi,
+            detect: {
+              js: /'(.*\.js)'/gi
+            },
+            replace: {
+              js: '\'{{filePath}}\','
+            }
+          }
+        }
       }
     },
 
@@ -253,7 +291,7 @@ module.exports = function(grunt) {
           src: ['app/**/*.html', 'components/**/*.html']
         }, {
           expand: true,
-          cwd: 'node_modules/datatables/media/images',
+          cwd: 'bower_components/datatables/media/images',
           src: '{,*/}*.{png,jpg,jpeg,gif}',
           dest: '<%= yeoman.dist %>/images'
         }, {
@@ -263,22 +301,22 @@ module.exports = function(grunt) {
           src: ['generated/*']
         }, {
           expand: true,
-          cwd: 'node_modules/bootstrap/dist',
+          cwd: 'bower_components/bootstrap/dist',
           src: 'fonts/*',
           dest: '<%= yeoman.dist %>'
         }, {
           expand: true,
-          cwd: 'node_modules/jquery-ui/themes/base/images',
+          cwd: 'bower_components/jquery-ui/themes/base/images',
           src: '{,*/}*.{png,jpg,jpeg,gif}',
           dest: '<%= yeoman.dist %>/styles/images'
         }, {
           expand: true,
-          cwd: 'node_modules/ngclipboard',
+          cwd: 'bower_components/ngclipboard',
           src: 'dist/**',
           dest: '<%= yeoman.dist %>'
         }, {
           expand: true,
-          cwd: 'node_modules/MathJax',
+          cwd: 'bower_components/MathJax',
           src: [
             'extensions/**', 'jax/**', 'fonts/**'],
           dest: '<%= yeoman.dist %>'
@@ -342,6 +380,8 @@ module.exports = function(grunt) {
 
   grunt.registerTask('pre-webpack-dev', 'Compile then start a connect web server', function(target) {
     grunt.task.run([
+      'wiredep:test',
+      'wiredep:dist',
     ]);
   });
 
@@ -351,10 +391,14 @@ module.exports = function(grunt) {
 
   grunt.registerTask('pre-webpack-dist', [
     'htmlhint',
+    'wiredep:test',
+    'wiredep:dist',
   ]);
 
   grunt.registerTask('pre-webpack-ci', [
     'htmlhint',
+    'wiredep:test',
+    'wiredep:ci',
   ]);
 
   grunt.registerTask('post-webpack-dist', [

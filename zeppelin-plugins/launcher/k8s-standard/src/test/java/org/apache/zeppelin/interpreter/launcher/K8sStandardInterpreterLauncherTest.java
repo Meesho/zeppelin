@@ -17,30 +17,30 @@
 
 package org.apache.zeppelin.interpreter.launcher;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Properties;
 
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.interpreter.InterpreterOption;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * In the future, test may use minikube for end-to-end test
  */
-class K8sStandardInterpreterLauncherTest {
-  @BeforeEach
-  void setUp() {
+public class K8sStandardInterpreterLauncherTest {
+  @Before
+  public void setUp() {
     for (final ZeppelinConfiguration.ConfVars confVar : ZeppelinConfiguration.ConfVars.values()) {
       System.clearProperty(confVar.getVarName());
     }
   }
 
   @Test
-  void testK8sLauncher() throws IOException {
+  public void testK8sLauncher() throws IOException {
     // given
     ZeppelinConfiguration zConf = ZeppelinConfiguration.create();
     K8sStandardInterpreterLauncher launcher = new K8sStandardInterpreterLauncher(zConf, null);
@@ -69,7 +69,7 @@ class K8sStandardInterpreterLauncherTest {
   }
 
   @Test
-  void testK8sLauncherWithSparkAndUserImpersonate() throws IOException {
+  public void testK8sLauncherWithSparkAndUserImpersonate() throws IOException {
     // given
     ZeppelinConfiguration zConf = ZeppelinConfiguration.create();
     K8sStandardInterpreterLauncher launcher = new K8sStandardInterpreterLauncher(zConf, null);
@@ -98,12 +98,11 @@ class K8sStandardInterpreterLauncherTest {
     assertTrue(client instanceof K8sRemoteInterpreterProcess);
     K8sRemoteInterpreterProcess process = (K8sRemoteInterpreterProcess) client;
     assertTrue(process.isSpark());
-    assertTrue(process.prepareZeppelinSparkConf(context.getUserName()).contains("--proxy-user|user1"));
-    process.close();
+    assertTrue(process.buildSparkSubmitOptions(context.getUserName()).contains("--proxy-user user1"));
   }
 
   @Test
-  void testK8sLauncherWithSparkAndWithoutUserImpersonate() throws IOException {
+  public void testK8sLauncherWithSparkAndWithoutUserImpersonate() throws IOException {
     // given
     ZeppelinConfiguration zConf = ZeppelinConfiguration.create();
     K8sStandardInterpreterLauncher launcher = new K8sStandardInterpreterLauncher(zConf, null);
@@ -132,7 +131,6 @@ class K8sStandardInterpreterLauncherTest {
     assertTrue(client instanceof K8sRemoteInterpreterProcess);
     K8sRemoteInterpreterProcess process = (K8sRemoteInterpreterProcess) client;
     assertTrue(process.isSpark());
-    assertFalse(process.prepareZeppelinSparkConf(context.getUserName()).contains("--proxy-user user1"));
-    process.close();
+    assertFalse(process.buildSparkSubmitOptions(context.getUserName()).contains("--proxy-user user1"));
   }
 }

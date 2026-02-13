@@ -19,35 +19,34 @@ package org.apache.zeppelin.interpreter.launcher;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.interpreter.InterpreterOption;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreterRunningProcess;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Properties;
 
-public class ClusterInterpreterLauncherTest extends ClusterMockTest {
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(ClusterInterpreterLauncherTest.class);
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-  @BeforeAll
-  static void startTest() throws IOException, InterruptedException {
+public class ClusterInterpreterLauncherTest extends ClusterMockTest {
+  private static Logger LOGGER = LoggerFactory.getLogger(ClusterInterpreterLauncherTest.class);
+
+  @BeforeClass
+  public static void startTest() throws IOException, InterruptedException {
     ClusterMockTest.startCluster();
   }
 
-  @AfterAll
-  static void stopTest() throws IOException, InterruptedException {
+  @AfterClass
+  public static void stopTest() throws IOException, InterruptedException {
     ClusterMockTest.stopCluster();
   }
 
-  @BeforeEach
-  void setUp() {
+  @Before
+  public void setUp() {
     for (final ZeppelinConfiguration.ConfVars confVar : ZeppelinConfiguration.ConfVars.values()) {
       System.clearProperty(confVar.getVarName());
     }
@@ -56,11 +55,11 @@ public class ClusterInterpreterLauncherTest extends ClusterMockTest {
   // TODO(zjffdu) disable this test because this is not a correct unit test,
   // Actually the interpreter process here never start before ZEPPELIN-5300.
   // @Test
-  void testConnectExistOnlineIntpProcess() throws IOException {
+  public void testConnectExistOnlineIntpProcess() throws IOException {
     mockIntpProcessMeta("intpGroupId", true);
 
-    ClusterInterpreterLauncher launcher =
-        new ClusterInterpreterLauncher(ClusterMockTest.zconf, null);
+    ClusterInterpreterLauncher launcher
+        = new ClusterInterpreterLauncher(ClusterMockTest.zconf, null);
     Properties properties = new Properties();
     properties.setProperty(
         ZeppelinConfiguration.ConfVars.ZEPPELIN_INTERPRETER_CONNECT_TIMEOUT.getVarName(), "5000");
@@ -80,11 +79,11 @@ public class ClusterInterpreterLauncherTest extends ClusterMockTest {
   }
 
   @Test
-  void testConnectExistOfflineIntpProcess() throws IOException {
+  public void testConnectExistOfflineIntpProcess() throws IOException {
     mockIntpProcessMeta("intpGroupId2", false);
 
-    ClusterInterpreterLauncher launcher =
-        new ClusterInterpreterLauncher(ClusterMockTest.zconf, null);
+    ClusterInterpreterLauncher launcher
+        = new ClusterInterpreterLauncher(ClusterMockTest.zconf, null);
     Properties properties = new Properties();
     properties.setProperty(
         ZeppelinConfiguration.ConfVars.ZEPPELIN_INTERPRETER_CONNECT_TIMEOUT.getVarName(), "5000");
@@ -107,10 +106,11 @@ public class ClusterInterpreterLauncherTest extends ClusterMockTest {
   }
 
   @Test
-  void testCreateIntpProcessDockerMode() throws IOException {
+  public void testCreateIntpProcessDockerMode() throws IOException {
     zconf.setRunMode(ZeppelinConfiguration.RUN_MODE.DOCKER);
 
-    ClusterInterpreterLauncher launcher = new ClusterInterpreterLauncher(zconf, null);
+    ClusterInterpreterLauncher launcher
+        = new ClusterInterpreterLauncher(zconf, null);
     Properties properties = new Properties();
     properties.setProperty(
         ZeppelinConfiguration.ConfVars.ZEPPELIN_INTERPRETER_CONNECT_TIMEOUT.getVarName(), "1000");
@@ -125,10 +125,11 @@ public class ClusterInterpreterLauncherTest extends ClusterMockTest {
   }
 
   @Test
-  void testCreateIntpProcessLocalMode() throws IOException {
+  public void testCreateIntpProcessLocalMode() throws IOException {
     zconf.setRunMode(ZeppelinConfiguration.RUN_MODE.LOCAL);
 
-    ClusterInterpreterLauncher launcher = new ClusterInterpreterLauncher(zconf, null);
+    ClusterInterpreterLauncher launcher
+        = new ClusterInterpreterLauncher(zconf, null);
     Properties properties = new Properties();
     properties.setProperty(
         ZeppelinConfiguration.ConfVars.ZEPPELIN_INTERPRETER_CONNECT_TIMEOUT.getVarName(), "1000");

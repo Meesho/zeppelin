@@ -24,13 +24,13 @@ import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterSetting;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreter;
 import org.apache.zeppelin.user.AuthenticationInfo;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import static org.apache.zeppelin.interpreter.InterpreterOption.ISOLATED;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unittest for DistributedResourcePool
@@ -46,7 +46,7 @@ public class DistributedResourcePoolTest extends AbstractInterpreterTest {
 
 
   @Override
-  @BeforeEach
+  @Before
   public void setUp() throws Exception {
     super.setUp();
     note1Id = notebook.createNote("/note_1", AuthenticationInfo.ANONYMOUS);
@@ -67,7 +67,7 @@ public class DistributedResourcePoolTest extends AbstractInterpreterTest {
   }
 
   @Override
-  @AfterEach
+  @After
   public void tearDown() throws Exception {
     interpreterSettingManager.close();
   }

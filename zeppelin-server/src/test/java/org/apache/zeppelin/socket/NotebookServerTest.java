@@ -16,13 +16,14 @@
  */
 package org.apache.zeppelin.socket;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
+import static java.util.Arrays.asList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
@@ -41,7 +42,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -71,15 +71,15 @@ import org.apache.zeppelin.service.NotebookService;
 import org.apache.zeppelin.service.ServiceContext;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.utils.TestUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.mockito.Mockito;
 
 
 /** Basic REST API tests for notebookServer. */
-class NotebookServerTest extends AbstractTestRestApi {
+public class NotebookServerTest extends AbstractTestRestApi {
   private static Notebook notebook;
   private static NotebookServer notebookServer;
   private static NotebookService notebookService;
@@ -87,8 +87,8 @@ class NotebookServerTest extends AbstractTestRestApi {
   private HttpServletRequest mockRequest;
   private AuthenticationInfo anonymous;
 
-  @BeforeAll
-  static void init() throws Exception {
+  @BeforeClass
+  public static void init() throws Exception {
     AbstractTestRestApi.startUp(NotebookServerTest.class.getSimpleName());
     notebook = TestUtils.getInstance(Notebook.class);
     authorizationService =  TestUtils.getInstance(AuthorizationService.class);
@@ -96,31 +96,31 @@ class NotebookServerTest extends AbstractTestRestApi {
     notebookService = TestUtils.getInstance(NotebookService.class);
   }
 
-  @AfterAll
-  static void destroy() throws Exception {
+  @AfterClass
+  public static void destroy() throws Exception {
     AbstractTestRestApi.shutDown();
   }
 
-  @BeforeEach
-  void setUp() {
+  @Before
+  public void setUp() {
     mockRequest = mock(HttpServletRequest.class);
     anonymous = AuthenticationInfo.ANONYMOUS;
   }
 
   @Test
-  void checkOrigin() throws UnknownHostException {
+  public void checkOrigin() throws UnknownHostException {
     String origin = "http://" + InetAddress.getLocalHost().getHostName() + ":8080";
-    assertTrue(notebookServer.checkOrigin(origin),
-      "Origin " + origin + " is not allowed. Please check your hostname.");
+    assertTrue("Origin " + origin + " is not allowed. Please check your hostname.",
+          notebookServer.checkOrigin(origin));
   }
 
   @Test
-  void checkInvalidOrigin() {
+  public void checkInvalidOrigin(){
     assertFalse(notebookServer.checkOrigin("http://evillocalhost:8080"));
   }
 
   @Test
-  void testCollaborativeEditing() throws IOException {
+  public void testCollaborativeEditing() throws IOException {
     if (!ZeppelinConfiguration.create().isZeppelinNotebookCollaborativeModeEnable()) {
       return;
     }
@@ -189,7 +189,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testMakeSureNoAngularObjectBroadcastToWebsocketWhoFireTheEvent()
+  public void testMakeSureNoAngularObjectBroadcastToWebsocketWhoFireTheEvent()
           throws IOException, InterruptedException {
     String note1Id = null;
     try {
@@ -268,7 +268,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testAngularObjectSaveToNote()
+  public void testAngularObjectSaveToNote()
       throws IOException, InterruptedException {
     // create a notebook
     String note1Id = null;
@@ -379,7 +379,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testLoadAngularObjectFromNote() throws IOException, InterruptedException {
+  public void testLoadAngularObjectFromNote() throws IOException, InterruptedException {
     // create a notebook
     String note1Id = null;
     try {
@@ -453,7 +453,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testImportNotebook() throws IOException {
+  public void testImportNotebook() throws IOException {
     String msg = "{\"op\":\"IMPORT_NOTE\",\"data\":" +
         "{\"note\":{\"paragraphs\": [{\"text\": \"Test " +
         "paragraphs import\"," + "\"progressUpdateIntervalMs\":500," +
@@ -489,7 +489,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testImportJupyterNote() throws IOException {
+  public void testImportJupyterNote() throws IOException {
     String jupyterNoteJson = IOUtils.toString(getClass().getResourceAsStream("/Lecture-4.ipynb"), StandardCharsets.UTF_8);
     String msg = "{\"op\":\"IMPORT_NOTE\",\"data\":" +
             "{\"note\": " + jupyterNoteJson + "}}";
@@ -508,7 +508,7 @@ class NotebookServerTest extends AbstractTestRestApi {
       notebook.processNote(noteId,
         note -> {
           assertNotNull(note);
-          assertTrue(note.getName().startsWith("Note converted from Jupyter_"), note.getName());
+          assertTrue(note.getName(), note.getName().startsWith("Note converted from Jupyter_"));
           assertEquals("md", note.getParagraphs().get(0).getIntpText());
           assertEquals("\n# matplotlib - 2D and 3D plotting in Python",
             note.getParagraphs().get(0).getScriptText());
@@ -525,7 +525,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void bindAngularObjectToRemoteForParagraphs() throws Exception {
+  public void bindAngularObjectToRemoteForParagraphs() throws Exception {
     //Given
     final String varName = "name";
     final String value = "DuyHai DOAN";
@@ -541,7 +541,7 @@ class NotebookServerTest extends AbstractTestRestApi {
       notebookServer.setNotebookService(() -> notebookService);
       final Note note = mock(Note.class, RETURNS_DEEP_STUBS);
 
-      when(notebook.processNote(eq("noteId"), Mockito.any())).then(e -> e.getArgument(1, NoteProcessor.class).process(note));
+      when(notebook.processNote(eq("noteId"), Mockito.any())).then(e -> e.getArgumentAt(1,NoteProcessor.class).process(note));
       final Paragraph paragraph = mock(Paragraph.class, RETURNS_DEEP_STUBS);
       when(note.getParagraph("paragraphId")).thenReturn(paragraph);
 
@@ -566,10 +566,7 @@ class NotebookServerTest extends AbstractTestRestApi {
               .put("noteId", "noteId")
               .put("paragraphId", "paragraphId"));
 
-      Set<NotebookSocket> sockets = new HashSet<>();
-      sockets.add(otherConn);
-      sockets.add(conn);
-      notebookServer.getConnectionManager().noteSocketMap.put("noteId", sockets);
+      notebookServer.getConnectionManager().noteSocketMap.put("noteId", asList(conn, otherConn));
 
       // When
       notebookServer.angularObjectClientBind(conn, messageReceived);
@@ -586,7 +583,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void unbindAngularObjectFromRemoteForParagraphs() throws Exception {
+  public void unbindAngularObjectFromRemoteForParagraphs() throws Exception {
     //Given
     final String varName = "name";
     final String value = "val";
@@ -600,7 +597,7 @@ class NotebookServerTest extends AbstractTestRestApi {
       notebookServer.setNotebook(() -> notebook);
       notebookServer.setNotebookService(() -> notebookService);
       final Note note = mock(Note.class, RETURNS_DEEP_STUBS);
-      when(notebook.processNote(eq("noteId"), Mockito.any())).then(e -> e.getArgument(1, NoteProcessor.class).process(note));
+      when(notebook.processNote(eq("noteId"), Mockito.any())).then(e -> e.getArgumentAt(1,NoteProcessor.class).process(note));
       final Paragraph paragraph = mock(Paragraph.class, RETURNS_DEEP_STUBS);
       when(note.getParagraph("paragraphId")).thenReturn(paragraph);
 
@@ -622,10 +619,7 @@ class NotebookServerTest extends AbstractTestRestApi {
               .put("noteId", "noteId")
               .put("paragraphId", "paragraphId"));
 
-      Set<NotebookSocket> sockets = new HashSet<>();
-      sockets.add(otherConn);
-      sockets.add(conn);
-      notebookServer.getConnectionManager().noteSocketMap.put("noteId", sockets);
+      notebookServer.getConnectionManager().noteSocketMap.put("noteId", asList(conn, otherConn));
 
       // When
       notebookServer.angularObjectClientUnbind(conn, messageReceived);
@@ -642,7 +636,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testCreateNoteWithDefaultInterpreterId() throws IOException {
+  public void testCreateNoteWithDefaultInterpreterId() throws IOException {
     // create two sockets and open it
     NotebookSocket sock1 = createWebSocket();
     NotebookSocket sock2 = createWebSocket();
@@ -689,7 +683,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testRuntimeInfos() throws IOException {
+  public void testRuntimeInfos() throws IOException {
     // mock note
     String msg = "{\"op\":\"IMPORT_NOTE\",\"data\":" +
         "{\"note\":{\"paragraphs\": [{\"text\": \"Test " +
@@ -741,7 +735,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testGetParagraphList() throws IOException {
+  public void testGetParagraphList() throws IOException {
     String noteId = null;
 
     try {
@@ -766,7 +760,7 @@ class NotebookServerTest extends AbstractTestRestApi {
       } catch (TException e) {
         e.printStackTrace();
       }
-      assertNotNull(paragraphList0, user1Id + " can get anonymous's note");
+      assertNotNull(user1Id + " can get anonymous's note", paragraphList0);
 
       // test user1 cannot get user2's note
       authorizationService.setOwners(noteId, new HashSet<>(Arrays.asList(user2Id)));
@@ -781,7 +775,7 @@ class NotebookServerTest extends AbstractTestRestApi {
       } catch (TException e) {
         e.printStackTrace();
       }
-      assertNull(paragraphList1, user1Id + " cannot get " + user2Id + "'s note");
+      assertNull(user1Id + " cannot get " + user2Id + "'s note", paragraphList1);
 
       // test user1 can get user2's shared note
       authorizationService.setOwners(noteId, new HashSet<>(Arrays.asList(user2Id)));
@@ -796,7 +790,7 @@ class NotebookServerTest extends AbstractTestRestApi {
       } catch (TException e) {
         e.printStackTrace();
       }
-      assertNotNull(paragraphList2, user1Id + " can get " + user2Id + "'s shared note");
+      assertNotNull(user1Id + " can get " + user2Id + "'s shared note", paragraphList2);
     } finally {
       if (null != noteId) {
         notebook.removeNote(noteId, anonymous);
@@ -805,7 +799,7 @@ class NotebookServerTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testNoteRevision() throws IOException {
+  public void testNoteRevision() throws IOException {
     String noteId = null;
 
     try {

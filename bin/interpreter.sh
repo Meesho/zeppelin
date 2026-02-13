@@ -101,9 +101,6 @@ fi
 
 . "${bin}/common.sh"
 
-# Escape envs
-ZEPPELIN_INTP_CLASSPATH_OVERRIDES=$(printf %q "${ZEPPELIN_INTP_CLASSPATH_OVERRIDES}")
-
 check_java_version
 
 ZEPPELIN_INTERPRETER_API_JAR=$(find "${ZEPPELIN_HOME}/interpreter" -name 'zeppelin-interpreter-shaded-*.jar')
@@ -208,7 +205,28 @@ elif [[ "${INTERPRETER_ID}" == "hbase" ]]; then
   else
     echo "HBASE_HOME and HBASE_CONF_DIR are not set, configuration might not be loaded"
   fi
+elif [[ "${INTERPRETER_ID}" == "pig" ]]; then
+   # autodetect HADOOP_CONF_HOME by heuristic
+  if [[ -n "${HADOOP_HOME}" ]] && [[ -z "${HADOOP_CONF_DIR}" ]]; then
+    if [[ -d "${HADOOP_HOME}/etc/hadoop" ]]; then
+      export HADOOP_CONF_DIR="${HADOOP_HOME}/etc/hadoop"
+    elif [[ -d "/etc/hadoop/conf" ]]; then
+      export HADOOP_CONF_DIR="/etc/hadoop/conf"
+    fi
+  fi
 
+  if [[ -n "${HADOOP_CONF_DIR}" ]] && [[ -d "${HADOOP_CONF_DIR}" ]]; then
+    ZEPPELIN_INTP_CLASSPATH+=":${HADOOP_CONF_DIR}"
+  fi
+
+  # autodetect TEZ_CONF_DIR
+  if [[ -n "${TEZ_CONF_DIR}" ]]; then
+    ZEPPELIN_INTP_CLASSPATH+=":${TEZ_CONF_DIR}"
+  elif [[ -d "/etc/tez/conf" ]]; then
+    ZEPPELIN_INTP_CLASSPATH+=":/etc/tez/conf"
+  else
+    echo "TEZ_CONF_DIR is not set, configuration might not be loaded"
+  fi
 elif [[ "${INTERPRETER_ID}" == "flink" ]]; then
   addEachJarInDirRecursiveForIntp "${FLINK_HOME}/lib"
 

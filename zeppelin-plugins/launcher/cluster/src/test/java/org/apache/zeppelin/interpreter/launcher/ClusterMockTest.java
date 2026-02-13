@@ -30,12 +30,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.Map;
 
 import static org.apache.zeppelin.cluster.meta.ClusterMeta.OFFLINE_STATUS;
 import static org.apache.zeppelin.cluster.meta.ClusterMeta.ONLINE_STATUS;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class ClusterMockTest {
   private static Logger LOGGER = LoggerFactory.getLogger(ClusterMockTest.class);
@@ -113,26 +112,27 @@ public class ClusterMockTest {
     LOGGER.info("serverMeta >>>");
 
     // Get metadata for all services
-    Map<String, Map<String, Object>> meta =
-        clusterClient.getClusterMeta(ClusterMetaType.SERVER_META, "");
+    Object meta = clusterClient.getClusterMeta(ClusterMetaType.SERVER_META, "");
 
     LOGGER.info(meta.toString());
 
     assertNotNull(meta);
-    assertEquals(true, (meta instanceof Map));
+    assertEquals(true, (meta instanceof HashMap));
+    HashMap hashMap = (HashMap) meta;
 
     // Get metadata for the current service
-    Map<String, Object> values = meta.get(zServerHost + ":" + zServerPort);
-    assertEquals(true, (values instanceof Map));
+    Object values = hashMap.get(zServerHost + ":" + zServerPort);
+    assertEquals(true, (values instanceof HashMap));
+    HashMap mapMetaValues = (HashMap) values;
 
-    assertEquals(true, values.size() > 0);
+    assertEquals(true, mapMetaValues.size() > 0);
 
     LOGGER.info("serverMeta <<<");
   }
 
   public void mockIntpProcessMeta(String metaKey, boolean online) {
     // mock IntpProcess Meta
-    Map<String, Object> meta = new HashMap<>();
+    HashMap<String, Object> meta = new HashMap<>();
     meta.put(ClusterMeta.SERVER_HOST, "127.0.0.1");
     meta.put(ClusterMeta.SERVER_PORT, 6000);
     meta.put(ClusterMeta.INTP_TSERVER_HOST, "127.0.0.1");
@@ -152,8 +152,8 @@ public class ClusterMockTest {
     clusterClient.putClusterMeta(ClusterMetaType.INTP_PROCESS_META, metaKey, meta);
 
     // get IntpProcess Meta
-    Map<String, Map<String, Object>> check =
-        clusterClient.getClusterMeta(ClusterMetaType.INTP_PROCESS_META, metaKey);
+    HashMap<String, HashMap<String, Object>> check
+        = clusterClient.getClusterMeta(ClusterMetaType.INTP_PROCESS_META, metaKey);
 
     LOGGER.info(check.toString());
 

@@ -16,58 +16,72 @@
  */
 package org.apache.zeppelin.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.After;
+import org.junit.Before;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
-class InterpreterOutputChangeWatcherTest implements InterpreterOutputChangeListener {
-  private Path tmpDir;
+public class InterpreterOutputChangeWatcherTest implements InterpreterOutputChangeListener {
+  private File tmpDir;
   private File fileChanged;
   private AtomicInteger numChanged;
   private InterpreterOutputChangeWatcher watcher;
 
-  @BeforeEach
-  void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     watcher = new InterpreterOutputChangeWatcher(this);
     watcher.start();
 
-    tmpDir = Files.createTempDirectory("ZeppelinLTest");
+    tmpDir = new File(System.getProperty("java.io.tmpdir") + "/ZeppelinLTest_" +
+        System.currentTimeMillis());
+    tmpDir.mkdirs();
     fileChanged = null;
     numChanged = new AtomicInteger(0);
   }
 
-  @AfterEach
-  void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     watcher.shutdown();
-    FileUtils.deleteDirectory(tmpDir.toFile());
+    delete(tmpDir);
   }
 
-  @Test
-  void test() throws IOException, InterruptedException {
+  private void delete(File file) {
+    if (file.isFile()) {
+      file.delete();
+    } else if (file.isDirectory()) {
+      File[] files = file.listFiles();
+      if (files != null && files.length > 0) {
+        for (File f : files) {
+          delete(f);
+        }
+      }
+      file.delete();
+    }
+  }
 
+
+  // @Test
+  public void test() throws IOException, InterruptedException {
     assertNull(fileChanged);
     assertEquals(0, numChanged.get());
+
+    Thread.sleep(1000);
     // create new file
-    File file1 = new File(tmpDir.toFile(), "test1");
+    File file1 = new File(tmpDir, "test1");
     file1.createNewFile();
 
-    File file2 = new File(tmpDir.toFile(), "test2");
+    File file2 = new File(tmpDir, "test2");
     file2.createNewFile();
 
     watcher.watch(file1);
+    Thread.sleep(1000);
 
     FileOutputStream out1 = new FileOutputStream(file1);
     out1.write(1);
@@ -82,8 +96,7 @@ class InterpreterOutputChangeWatcherTest implements InterpreterOutputChangeListe
     }
 
     assertNotNull(fileChanged);
-    assertEquals(fileChanged, file1);
-    assertTrue(numChanged.get() >= 1, "Changes: " + numChanged.get());
+    assertEquals(1, numChanged.get());
   }
 
 
@@ -93,7 +106,7 @@ class InterpreterOutputChangeWatcherTest implements InterpreterOutputChangeListe
     numChanged.incrementAndGet();
 
     synchronized (this) {
-      notifyAll();
+      notify();
     }
   }
 

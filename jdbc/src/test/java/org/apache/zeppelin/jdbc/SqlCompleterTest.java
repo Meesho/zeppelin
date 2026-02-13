@@ -14,12 +14,13 @@
  */
 package org.apache.zeppelin.jdbc;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,7 @@ import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
 /**
  * SQL completer unit tests.
  */
-class SqlCompleterTest {
+public class SqlCompleterTest {
   public class CompleterTester {
     private SqlCompleter completer;
 
@@ -50,7 +51,7 @@ class SqlCompleterTest {
     private int toCursor;
     private Set<InterpreterCompletion> expectedCompletions;
 
-    CompleterTester(SqlCompleter completer) {
+    public CompleterTester(SqlCompleter completer) {
       this.completer = completer;
     }
 
@@ -94,8 +95,8 @@ class SqlCompleterTest {
 
       logger.info(explain);
 
-      assertEquals(expected, new HashSet<>(candidates), "Buffer [" + buffer.replace(" ", ".")
-              + "] and Cursor[" + cursor + "] " + explain);
+      Assert.assertEquals("Buffer [" + buffer.replace(" ", ".") + "] and Cursor[" + cursor + "] "
+          + explain, expected, new HashSet<>(candidates));
     }
 
     private String explain(String buffer, int cursor, List<InterpreterCompletion> candidates) {
@@ -137,7 +138,7 @@ class SqlCompleterTest {
 
   private SqlCompleter sqlCompleter = new SqlCompleter(0);
 
-  @BeforeEach
+  @Before
   public void beforeTest() throws IOException, SQLException {
     Set<String> schemas = new HashSet<>();
     Set<String> keywords = new HashSet<>();
@@ -191,26 +192,26 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testFindAliasesInSQL_Simple() {
+  public void testFindAliasesInSQL_Simple() {
     String sql = "select * from prod_emart.financial_account a";
     Map<String, String> res = sqlCompleter.findAliasesInSQL(
             delimiter.delimit(sql, 0).getArguments());
     assertEquals(1, res.size());
-    assertEquals("prod_emart.financial_account", res.get("a"));
+    assertTrue(res.get("a").equals("prod_emart.financial_account"));
   }
 
   @Test
-  void testFindAliasesInSQL_Two() {
+  public void testFindAliasesInSQL_Two() {
     String sql = "select * from prod_dds.financial_account a, prod_dds.customer b";
     Map<String, String> res = sqlCompleter.findAliasesInSQL(
             sqlCompleter.getSqlDelimiter().delimit(sql, 0).getArguments());
     assertEquals(2, res.size());
-    assertEquals("prod_dds.financial_account", res.get("a"));
-    assertEquals("prod_dds.customer", res.get("b"));
+    assertTrue(res.get("a").equals("prod_dds.financial_account"));
+    assertTrue(res.get("b").equals("prod_dds.customer"));
   }
 
   @Test
-  void testFindAliasesInSQL_WrongTables() {
+  public void testFindAliasesInSQL_WrongTables() {
     String sql = "select * from prod_ddsxx.financial_account a, prod_dds.customerxx b";
     Map<String, String> res = sqlCompleter.findAliasesInSQL(
             sqlCompleter.getSqlDelimiter().delimit(sql, 0).getArguments());
@@ -218,7 +219,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testCompleteName_Empty() {
+  public void testCompleteName_Empty() {
     String buffer = "";
     int cursor = 0;
     List<InterpreterCompletion> candidates = new ArrayList<>();
@@ -246,7 +247,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testCompleteName_SimpleSchema() {
+  public void testCompleteName_SimpleSchema() {
     String buffer = "prod_";
     int cursor = 3;
     List<InterpreterCompletion> candidates = new ArrayList<>();
@@ -260,7 +261,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testCompleteName_SimpleTable() {
+  public void testCompleteName_SimpleTable() {
     String buffer = "prod_dds.fin";
     int cursor = 11;
     List<InterpreterCompletion> candidates = new ArrayList<>();
@@ -273,7 +274,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testCompleteName_SimpleColumn() {
+  public void testCompleteName_SimpleColumn() {
     String buffer = "prod_dds.financial_account.acc";
     int cursor = 30;
     List<InterpreterCompletion> candidates = new ArrayList<>();
@@ -287,7 +288,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testCompleteName_WithAlias() {
+  public void testCompleteName_WithAlias() {
     String buffer = "a.acc";
     int cursor = 4;
     List<InterpreterCompletion> candidates = new ArrayList<>();
@@ -302,7 +303,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testCompleteName_WithAliasAndPoint() {
+  public void testCompleteName_WithAliasAndPoint() {
     String buffer = "a.";
     int cursor = 2;
     List<InterpreterCompletion> candidates = new ArrayList<>();
@@ -317,7 +318,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testSchemaAndTable() {
+  public void testSchemaAndTable() {
     String buffer = "select * from prod_emart.fi";
     tester.buffer(buffer).from(20).to(23).expect(new HashSet<>(Arrays.asList(
             new InterpreterCompletion("prod_emart", "prod_emart",
@@ -328,7 +329,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testEdges() {
+  public void testEdges() {
     String buffer = "  ORDER  ";
     tester.buffer(buffer).from(3).to(7).expect(new HashSet<>(Arrays.asList(
             new InterpreterCompletion("ORDER", "ORDER", CompletionType.keyword.name())))).test();
@@ -347,7 +348,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testMultipleWords() {
+  public void testMultipleWords() {
     String buffer = "SELE FRO LIM";
     tester.buffer(buffer).from(2).to(4).expect(new HashSet<>(Arrays.asList(
             new InterpreterCompletion("SELECT", "SELECT", CompletionType.keyword.name())))).test();
@@ -358,7 +359,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testMultiLineBuffer() {
+  public void testMultiLineBuffer() {
     String buffer = " \n SELE\nFRO";
     tester.buffer(buffer).from(5).to(7).expect(new HashSet<>(Arrays.asList(
             new InterpreterCompletion("SELECT", "SELECT", CompletionType.keyword.name())))).test();
@@ -367,7 +368,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testMultipleCompletionSuggestions() {
+  public void testMultipleCompletionSuggestions() {
     String buffer = "SU";
     tester.buffer(buffer).from(2).to(2).expect(new HashSet<>(Arrays.asList(
         new InterpreterCompletion("SUBCLASS_ORIGIN", "SUBCLASS_ORIGIN",
@@ -378,7 +379,7 @@ class SqlCompleterTest {
   }
 
   @Test
-  void testSqlDelimiterCharacters() {
+  public void testSqlDelimiterCharacters() {
     assertTrue(sqlCompleter.getSqlDelimiter().isDelimiterChar("r,", 1));
     assertTrue(sqlCompleter.getSqlDelimiter().isDelimiterChar("SS,", 2));
     assertTrue(sqlCompleter.getSqlDelimiter().isDelimiterChar(",", 0));

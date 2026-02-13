@@ -17,29 +17,36 @@
 package org.apache.zeppelin.interpreter.launcher;
 
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
-import org.apache.zeppelin.conf.ZeppelinConfiguration.ConfVars;
 import org.apache.zeppelin.interpreter.InterpreterOption;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
-class DockerInterpreterProcessTest {
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({System.class, DockerInterpreterProcess.class})
+@PowerMockIgnore( {"javax.management.*"})
+public class DockerInterpreterProcessTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(DockerInterpreterProcessTest.class);
 
-  protected static ZeppelinConfiguration zconf = spy(ZeppelinConfiguration.create());
+  protected static ZeppelinConfiguration zconf = ZeppelinConfiguration.create();
 
   @Test
-  void testCreateIntpProcess() throws IOException {
+  public void testCreateIntpProcess() throws IOException {
     DockerInterpreterLauncher launcher
         = new DockerInterpreterLauncher(zconf, null);
     Properties properties = new Properties();
@@ -55,27 +62,26 @@ class DockerInterpreterProcessTest {
     DockerInterpreterProcess interpreterProcess = (DockerInterpreterProcess) client;
     assertEquals("name", interpreterProcess.getInterpreterSettingName());
 
-    assertEquals("/spark", interpreterProcess.containerSparkHome);
-    assertTrue(interpreterProcess.uploadLocalLibToContainter);
-    assertNotEquals("http://my-docker-host:2375", interpreterProcess.dockerHost);
+    assertEquals(interpreterProcess.CONTAINER_SPARK_HOME, "/spark");
+    assertEquals(interpreterProcess.uploadLocalLibToContainter, true);
+    assertNotEquals(interpreterProcess.DOCKER_HOST, "http://my-docker-host:2375");
   }
 
   @Test
-  void testEnv() throws IOException {
-    when(zconf.getString(ConfVars.ZEPPELIN_DOCKER_CONTAINER_SPARK_HOME))
-        .thenReturn("my-spark-home");
-    when(zconf.getBoolean(ConfVars.ZEPPELIN_DOCKER_UPLOAD_LOCAL_LIB_TO_CONTAINTER))
-        .thenReturn(false);
-    when(zconf.getString(ConfVars.ZEPPELIN_DOCKER_HOST))
-        .thenReturn("http://my-docker-host:2375");
+  public void testEnv() throws IOException {
+    PowerMockito.mockStatic(System.class);
+    PowerMockito.when(System.getenv("CONTAINER_SPARK_HOME")).thenReturn("my-spark-home");
+    PowerMockito.when(System.getenv("UPLOAD_LOCAL_LIB_TO_CONTAINTER")).thenReturn("false");
+    PowerMockito.when(System.getenv("DOCKER_HOST")).thenReturn("http://my-docker-host:2375");
 
     Properties properties = new Properties();
     properties.setProperty(
         ZeppelinConfiguration.ConfVars.ZEPPELIN_INTERPRETER_CONNECT_TIMEOUT.getVarName(), "5000");
+
     HashMap<String, String> envs = new HashMap<String, String>();
     envs.put("MY_ENV1", "V1");
 
-    DockerInterpreterProcess intp = spy(new DockerInterpreterProcess(
+    DockerInterpreterProcess intp = new DockerInterpreterProcess(
         zconf,
         "interpreter-container:1.0",
         "shared_process",
@@ -85,15 +91,15 @@ class DockerInterpreterProcessTest {
         envs,
         "zeppelin.server.hostname",
         12320,
-        5000, 10));
+        5000, 10);
 
-    assertEquals("my-spark-home", intp.containerSparkHome);
-    assertFalse(intp.uploadLocalLibToContainter);
-    assertEquals("http://my-docker-host:2375", intp.dockerHost);
+    assertEquals(intp.CONTAINER_SPARK_HOME, "my-spark-home");
+    assertEquals(intp.uploadLocalLibToContainter, false);
+    assertEquals(intp.DOCKER_HOST, "http://my-docker-host:2375");
   }
 
   @Test
-  void testTemplateBindings() throws IOException {
+  public void testTemplateBindings() throws IOException {
     Properties properties = new Properties();
     properties.setProperty(
         ZeppelinConfiguration.ConfVars.ZEPPELIN_INTERPRETER_CONNECT_TIMEOUT.getVarName(), "5000");
@@ -114,28 +120,28 @@ class DockerInterpreterProcessTest {
         5000, 10);
 
     Properties dockerProperties = intp.getTemplateBindings();
-    assertEquals(10, dockerProperties.size());
+    assertEquals(dockerProperties.size(), 10);
 
-    assertNotNull(dockerProperties.get("CONTAINER_ZEPPELIN_HOME"));
-    assertNotNull(dockerProperties.get("zeppelin.interpreter.container.image"));
-    assertNotNull(dockerProperties.get("zeppelin.interpreter.group.id"));
-    assertNotNull(dockerProperties.get("zeppelin.interpreter.group.name"));
-    assertNotNull(dockerProperties.get("zeppelin.interpreter.setting.name"));
-    assertNotNull(dockerProperties.get("zeppelin.interpreter.localRepo"));
-    assertNotNull(dockerProperties.get("zeppelin.interpreter.rpc.portRange"));
-    assertNotNull(dockerProperties.get("zeppelin.server.rpc.host"));
-    assertNotNull(dockerProperties.get("zeppelin.server.rpc.portRange"));
-    assertNotNull(dockerProperties.get("zeppelin.interpreter.connect.timeout"));
+    assertTrue(null != dockerProperties.get("CONTAINER_ZEPPELIN_HOME"));
+    assertTrue(null != dockerProperties.get("zeppelin.interpreter.container.image"));
+    assertTrue(null != dockerProperties.get("zeppelin.interpreter.group.id"));
+    assertTrue(null != dockerProperties.get("zeppelin.interpreter.group.name"));
+    assertTrue(null != dockerProperties.get("zeppelin.interpreter.setting.name"));
+    assertTrue(null != dockerProperties.get("zeppelin.interpreter.localRepo"));
+    assertTrue(null != dockerProperties.get("zeppelin.interpreter.rpc.portRange"));
+    assertTrue(null != dockerProperties.get("zeppelin.server.rpc.host"));
+    assertTrue(null != dockerProperties.get("zeppelin.server.rpc.portRange"));
+    assertTrue(null != dockerProperties.get("zeppelin.interpreter.connect.timeout"));
 
     List<String> listEnvs = intp.getListEnvs();
-    assertEquals(6, listEnvs.size());
+    assertEquals(listEnvs.size(), 6);
     Map<String, String> mapEnv = new HashMap<>();
     for (int i = 0; i < listEnvs.size(); i++) {
       String env = listEnvs.get(i);
       String kv[] = env.split("=");
       mapEnv.put(kv[0], kv[1]);
     }
-    assertEquals(6, mapEnv.size());
+    assertEquals(mapEnv.size(), 6);
     assertTrue(mapEnv.containsKey("ZEPPELIN_HOME"));
     assertTrue(mapEnv.containsKey("ZEPPELIN_CONF_DIR"));
     assertTrue(mapEnv.containsKey("ZEPPELIN_FORCE_STOP"));

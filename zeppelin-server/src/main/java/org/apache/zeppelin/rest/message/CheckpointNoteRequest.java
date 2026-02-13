@@ -16,14 +16,10 @@
  */
 package org.apache.zeppelin.rest.message;
 
-/**
- * CheckpointNoteRequest rest api request message.
- */
 public class CheckpointNoteRequest {
-  private final String commitMessage;
+  String commitMessage;
 
-  public CheckpointNoteRequest(String commitMessage) {
-    this.commitMessage = commitMessage;
+  public CheckpointNoteRequest() {
   }
 
   public String getCommitMessage() {

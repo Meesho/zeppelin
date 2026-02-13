@@ -22,6 +22,7 @@ import com.google.common.base.Function;
 import java.io.File;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.By;
@@ -44,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 abstract public class AbstractZeppelinIT {
 
-  protected WebDriverManager manager;
+  protected static WebDriver driver;
 
   protected final static Logger LOG = LoggerFactory.getLogger(AbstractZeppelinIT.class);
   protected static final long MIN_IMPLICIT_WAIT = 5;
@@ -56,21 +57,18 @@ abstract public class AbstractZeppelinIT {
     String paragraphXpath = getParagraphXPath(paragraphNo);
 
     try {
-      manager.getWebDriver().manage().timeouts().implicitlyWait(Duration.ofMillis(100));
+      driver.manage().timeouts().implicitlyWait(100, TimeUnit.MILLISECONDS);
       // make sure ace code is visible, if not click on show editor icon to make it visible
-      manager.getWebDriver()
-        .findElement(By.xpath(paragraphXpath + "//span[@class='icon-size-fullscreen']")).click();
+      driver.findElement(By.xpath(paragraphXpath + "//span[@class='icon-size-fullscreen']")).click();
     } catch (NoSuchElementException e) {
       // ignore
     } finally {
-      manager.getWebDriver().manage().timeouts()
-        .implicitlyWait(Duration.ofSeconds(AbstractZeppelinIT.MAX_BROWSER_TIMEOUT_SEC));
+      driver.manage().timeouts().implicitlyWait(AbstractZeppelinIT.MAX_BROWSER_TIMEOUT_SEC, TimeUnit.SECONDS);
     }
     String editorId = pollingWait(By.xpath(paragraphXpath + "//div[contains(@class, 'editor')]"),
         MIN_IMPLICIT_WAIT).getAttribute("id");
-    if (manager.getWebDriver() instanceof JavascriptExecutor) {
-      ((JavascriptExecutor) manager.getWebDriver())
-        .executeScript("ace.edit('" + editorId + "'). setValue('" + text + "')");
+    if (driver instanceof JavascriptExecutor) {
+      ((JavascriptExecutor) driver).executeScript("ace.edit('" + editorId + "'). setValue('" + text + "')");
     } else {
       throw new IllegalStateException("This driver does not support JavaScript!");
     }
@@ -86,11 +84,11 @@ abstract public class AbstractZeppelinIT {
     clickAndWait(by);
   }
 
-  protected static String getParagraphXPath(int paragraphNo) {
+  protected String getParagraphXPath(int paragraphNo) {
     return "(//div[@ng-controller=\"ParagraphCtrl\"])[" + paragraphNo + "]";
   }
 
-  protected static String getNoteFormsXPath() {
+  protected String getNoteFormsXPath() {
     return "(//div[@id='noteForms'])";
   }
 
@@ -105,7 +103,7 @@ abstract public class AbstractZeppelinIT {
     By locator = By.xpath(getParagraphXPath(paragraphNo)
         + "//div[contains(@class, 'control')]/span[2]");
 
-    return manager.getWebDriver().findElement(locator).getText();
+    return driver.findElement(locator).getText();
   }
 
   protected boolean waitForText(final String txt, final By locator) {
@@ -118,13 +116,12 @@ abstract public class AbstractZeppelinIT {
   }
 
   protected WebElement pollingWait(final By locator, final long timeWait) {
-    Wait<WebDriver> wait = new FluentWait<>(manager.getWebDriver())
+    Wait<WebDriver> wait = new FluentWait<>(driver)
         .withTimeout(Duration.of(timeWait, ChronoUnit.SECONDS))
         .pollingEvery(Duration.of(1, ChronoUnit.SECONDS))
         .ignoring(NoSuchElementException.class);
 
     return wait.until(new Function<WebDriver, WebElement>() {
-      @Override
       public WebElement apply(WebDriver driver) {
         return driver.findElement(locator);
       }
@@ -135,15 +132,14 @@ abstract public class AbstractZeppelinIT {
     clickAndWait(By.xpath("//div[contains(@class, \"col-md-4\")]/div/h5/a[contains(.,'Create new" +
         " note')]"));
 
-    WebDriverWait block =
-      new WebDriverWait(manager.getWebDriver(), Duration.ofSeconds(MAX_BROWSER_TIMEOUT_SEC));
+    WebDriverWait block = new WebDriverWait(driver, MAX_BROWSER_TIMEOUT_SEC);
     block.until(ExpectedConditions.visibilityOfElementLocated(By.id("noteCreateModal")));
     clickAndWait(By.id("createNoteButton"));
     block.until(ExpectedConditions.invisibilityOfElementLocated(By.id("createNoteButton")));
   }
 
   protected void deleteTestNotebook(final WebDriver driver) {
-    WebDriverWait block = new WebDriverWait(driver, Duration.ofSeconds(MAX_BROWSER_TIMEOUT_SEC));
+    WebDriverWait block = new WebDriverWait(driver, MAX_BROWSER_TIMEOUT_SEC);
     driver.findElement(By.xpath(".//*[@id='main']//button[@ng-click='moveNoteToTrash(note.id)']"))
         .sendKeys(Keys.ENTER);
     block.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(".//*[@id='main']//button[@ng-click='moveNoteToTrash(note.id)']")));
@@ -153,7 +149,7 @@ abstract public class AbstractZeppelinIT {
   }
 
   protected void deleteTrashNotebook(final WebDriver driver) {
-    WebDriverWait block = new WebDriverWait(driver, Duration.ofSeconds(MAX_BROWSER_TIMEOUT_SEC));
+    WebDriverWait block = new WebDriverWait(driver, MAX_BROWSER_TIMEOUT_SEC);
     driver.findElement(By.xpath(".//*[@id='main']//button[@ng-click='removeNote(note.id)']"))
         .sendKeys(Keys.ENTER);
     block.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(".//*[@id='main']//button[@ng-click='removeNote(note.id)']")));
@@ -169,7 +165,7 @@ abstract public class AbstractZeppelinIT {
       ZeppelinITUtils.sleep(1000, false);
     } catch (ElementClickInterceptedException e) {
       // if the previous click did not happened mean the element is behind another clickable element
-      Actions action = new Actions(manager.getWebDriver());
+      Actions action = new Actions(driver);
       action.moveToElement(element).click().build().perform();
       ZeppelinITUtils.sleep(1500, false);
     }
@@ -177,7 +173,7 @@ abstract public class AbstractZeppelinIT {
 
   protected void handleException(String message, Exception e) throws Exception {
     LOG.error(message, e);
-    File scrFile = ((TakesScreenshot) manager.getWebDriver()).getScreenshotAs(OutputType.FILE);
+    File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
     LOG.error("ScreenShot::\ndata:image/png;base64," + new String(Base64.encodeBase64(FileUtils.readFileToByteArray(scrFile))));
     throw e;
   }

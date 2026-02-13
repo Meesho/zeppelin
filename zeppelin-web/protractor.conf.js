@@ -36,7 +36,7 @@ var baseConfig = {
 };
 
 var chromeOptions = {
-  args: ['--disable-gpu', '--no-sandbox', 'window-size=1920, 1080', '--disable-browser-side-navigation']
+  args: ['--disable-gpu', '--no-sandbox']
 }
 
 baseConfig.capabilities.chromeOptions = chromeOptions;

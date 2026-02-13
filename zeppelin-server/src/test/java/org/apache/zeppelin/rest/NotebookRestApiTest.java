@@ -16,6 +16,14 @@
  */
 package org.apache.zeppelin.rest;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -26,12 +34,12 @@ import org.apache.zeppelin.notebook.repo.NotebookRepoWithVersionControl;
 import org.apache.zeppelin.rest.message.ParametersRequest;
 import org.apache.zeppelin.socket.NotebookServer;
 import org.apache.zeppelin.utils.TestUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
+import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -45,40 +53,32 @@ import org.apache.zeppelin.notebook.Paragraph;
 import org.apache.zeppelin.scheduler.Job;
 import org.apache.zeppelin.user.AuthenticationInfo;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
 /**
  * Zeppelin notebook rest api tests.
  */
-@TestMethodOrder(MethodOrderer.MethodName.class)
-class NotebookRestApiTest extends AbstractTestRestApi {
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+public class NotebookRestApiTest extends AbstractTestRestApi {
   Gson gson = new Gson();
   AuthenticationInfo anonymous;
 
-  @BeforeAll
-  static void init() throws Exception {
+  @BeforeClass
+  public static void init() throws Exception {
     startUp(NotebookRestApiTest.class.getSimpleName());
     TestUtils.getInstance(Notebook.class).setParagraphJobListener(NotebookServer.getInstance());
   }
 
-  @AfterAll
-  static void destroy() throws Exception {
+  @AfterClass
+  public static void destroy() throws Exception {
     AbstractTestRestApi.shutDown();
   }
 
-  @BeforeEach
-  void setUp() {
+  @Before
+  public void setUp() {
     anonymous = new AuthenticationInfo("anonymous");
   }
 
   @Test
-  void testGetReloadNote() throws IOException {
+  public void testGetReloadNote() throws IOException {
     LOG.info("Running testGetNote");
     String note1Id = null;
     try {
@@ -120,7 +120,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testGetNoteByPath() throws IOException {
+  public void testGetNoteByPath() throws IOException {
     LOG.info("Running testGetNoteByPath");
     String note1Id = null;
     try {
@@ -150,7 +150,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testGetNoteByPathWithPathNotExist() throws IOException {
+  public void testGetNoteByPathWithPathNotExist() throws IOException {
     LOG.info("Running testGetNoteByPathWithPathNotExist");
     String notePath = "A note that doesn't exist";
     CloseableHttpResponse post = httpPost("/notebook/getByPath" , "{\"notePath\":\""+ notePath + "\"}" );
@@ -163,7 +163,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testGetNoteRevisionHistory() throws IOException {
+  public void testGetNoteRevisionHistory() throws IOException {
     LOG.info("Running testGetNoteRevisionHistory");
     String note1Id = null;
     Notebook notebook = TestUtils.getInstance(Notebook.class);
@@ -224,7 +224,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testGetNoteByRevision() throws IOException {
+  public void testGetNoteByRevision() throws IOException {
     LOG.info("Running testGetNoteByRevision");
     String note1Id = null;
     Notebook notebook = TestUtils.getInstance(Notebook.class);
@@ -269,7 +269,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testGetNoteParagraphJobStatus() throws IOException {
+  public void testGetNoteParagraphJobStatus() throws IOException {
     LOG.info("Running testGetNoteParagraphJobStatus");
     String note1Id = null;
     try {
@@ -298,7 +298,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testCheckpointNote() throws IOException {
+  public void testCheckpointNote() throws IOException {
     LOG.info("Running testCheckpointNote");
     String note1Id = null;
     Notebook notebook = TestUtils.getInstance(Notebook.class);
@@ -342,7 +342,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
 
 
   @Test
-  void testSetNoteRevision() throws IOException {
+  public void testSetNoteRevision() throws IOException {
     LOG.info("Running testSetNoteRevision");
     String note1Id = null;
     Notebook notebook = TestUtils.getInstance(Notebook.class);
@@ -391,7 +391,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
 
 
   @Test
-  void testRunParagraphJob() throws Exception {
+  public void testRunParagraphJob() throws Exception {
     LOG.info("Running testRunParagraphJob");
     String note1Id = null;
     try {
@@ -431,7 +431,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testCancelNoteJob() throws Exception {
+  public void testCancelNoteJob() throws Exception {
     LOG.info("Running testCancelNoteJob");
     String note1Id = null;
     Notebook notebook = TestUtils.getInstance(Notebook.class);
@@ -475,7 +475,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testRunParagraphSynchronously() throws IOException {
+  public void testRunParagraphSynchronously() throws IOException {
     LOG.info("Running testRunParagraphSynchronously");
     String note1Id = null;
     try {
@@ -516,8 +516,8 @@ class NotebookRestApiTest extends AbstractTestRestApi {
       Map stringMap = (Map) resp.get("body");
       assertEquals("ERROR", stringMap.get("code"));
       List<Map> interpreterResults = (List<Map>) stringMap.get("msg");
-      assertTrue(interpreterResults.get(0).get("data").toString()
-          .contains("invalid_cmd: command not found"), interpreterResults.get(0).toString());
+      assertTrue(interpreterResults.get(0).toString(),
+              interpreterResults.get(0).get("data").toString().contains("invalid_cmd: command not found"));
       post.close();
       assertNotEquals(Job.Status.READY, p.getStatus());
 
@@ -533,7 +533,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testCreateNote() throws Exception {
+  public void testCreateNote() throws Exception {
     LOG.info("Running testCreateNote");
     String message1 = "{\n\t\"name\" : \"test1\",\n\t\"addingEmptyParagraph\" : true\n}";
     CloseableHttpResponse post1 = httpPost("/notebook/", message1);
@@ -572,7 +572,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testRunNoteBlocking() throws IOException {
+  public void testRunNoteBlocking() throws IOException {
     LOG.info("Running testRunNoteBlocking");
     String note1Id = null;
     try {
@@ -622,7 +622,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testRunNoteNonBlocking() throws Exception {
+  public void testRunNoteNonBlocking() throws Exception {
     LOG.info("Running testRunNoteNonBlocking");
     String note1Id = null;
     try {
@@ -662,7 +662,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
             p1.waitUntilFinished();
             p2.waitUntilFinished();
           } catch (InterruptedException e) {
-            fail(e);
+            fail();
           }
           assertEquals(Job.Status.FINISHED, p1.getStatus());
           assertEquals(Job.Status.FINISHED, p2.getStatus());
@@ -678,7 +678,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testRunNoteBlocking_Isolated() throws IOException {
+  public void testRunNoteBlocking_Isolated() throws IOException {
     LOG.info("Running testRunNoteBlocking_Isolated");
     String note1Id = null;
     try {
@@ -735,7 +735,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testRunNoteNonBlocking_Isolated() throws IOException, InterruptedException {
+  public void testRunNoteNonBlocking_Isolated() throws IOException, InterruptedException {
     LOG.info("Running testRunNoteNonBlocking_Isolated");
     String note1Id = null;
     try {
@@ -800,7 +800,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testRunNoteWithParams() throws IOException, InterruptedException {
+  public void testRunNoteWithParams() throws IOException, InterruptedException {
     String note1Id = null;
     try {
       note1Id = TestUtils.getInstance(Notebook.class).createNote("note1", anonymous);
@@ -826,7 +826,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
       paramsMap.put("name", "zeppelin");
       ParametersRequest parametersRequest = new ParametersRequest(paramsMap);
       CloseableHttpResponse post = httpPost("/notebook/job/" + note1Id + "?blocking=false&isolated=true&",
-        gson.toJson(parametersRequest));
+              parametersRequest.toJson());
       assertThat(post, isAllowed());
       Map<String, Object> resp = gson.fromJson(EntityUtils.toString(post.getEntity(), StandardCharsets.UTF_8),
               new TypeToken<Map<String, Object>>() {}.getType());
@@ -883,7 +883,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testRunAllParagraph_FirstFailed() throws IOException {
+  public void testRunAllParagraph_FirstFailed() throws IOException {
     LOG.info("Running testRunAllParagraph_FirstFailed");
     String note1Id = null;
     try {
@@ -933,7 +933,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testCloneNote() throws IOException {
+  public void testCloneNote() throws IOException {
     LOG.info("Running testCloneNote");
     String note1Id = null;
     List<String> clonedNoteIds = new ArrayList<>();
@@ -1004,7 +1004,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testRenameNote() throws IOException {
+  public void testRenameNote() throws IOException {
     LOG.info("Running testRenameNote");
     String noteId = null;
     try {
@@ -1029,7 +1029,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testUpdateParagraphConfig() throws IOException {
+  public void testUpdateParagraphConfig() throws IOException {
     LOG.info("Running testUpdateParagraphConfig");
     String noteId = null;
     try {
@@ -1068,7 +1068,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testClearAllParagraphOutput() throws IOException {
+  public void testClearAllParagraphOutput() throws IOException {
     LOG.info("Running testClearAllParagraphOutput");
     String noteId = null;
     try {
@@ -1123,7 +1123,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
   }
 
   @Test
-  void testRunWithServerRestart() throws Exception {
+  public void testRunWithServerRestart() throws Exception {
     LOG.info("Running testRunWithServerRestart");
     String note1Id = null;
     try {
@@ -1172,7 +1172,7 @@ class NotebookRestApiTest extends AbstractTestRestApi {
           Paragraph p1 = note1.getParagraph(0);
           Paragraph p2 = note1.getParagraph(1);
           assertEquals(Job.Status.FINISHED, p1.getStatus());
-          assertEquals(Job.Status.FINISHED, p2.getStatus(), p2.getReturn().toString());
+          assertEquals(p2.getReturn().toString(), Job.Status.FINISHED, p2.getStatus());
           assertNotNull(p2.getReturn());
           assertEquals("abc\n", p2.getReturn().message().get(0).getData());
           return null;

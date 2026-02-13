@@ -17,11 +17,11 @@
 
 package org.apache.zeppelin.notebook;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static junit.framework.TestCase.assertEquals;
 
 public class ParagraphTextParserTest {
 
@@ -136,32 +136,38 @@ public class ParagraphTextParserTest {
     assertEquals("", parseResult.getScriptText());
   }
 
+  @Rule
+  public ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void testParagraphTextUnfinishedConfig() {
-    assertThrows(RuntimeException.class,
-            () -> ParagraphTextParser.parse("%spark.pyspark(pool="),
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage(
             "Problems by parsing paragraph. Not finished interpreter configuration");
+    ParagraphTextParser.parse("%spark.pyspark(pool=");
   }
 
   @Test
   public void testParagraphTextUnfinishedQuote() {
-    assertThrows(RuntimeException.class,
-            () -> ParagraphTextParser.parse("%spark.pyspark(pool=\"2314234) sc.version"),
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage(
             "Problems by parsing paragraph. Not finished interpreter configuration");
+    ParagraphTextParser.parse("%spark.pyspark(pool=\"2314234) sc.version");
   }
 
   @Test
   public void testParagraphTextUnclosedBackslash() {
-    assertThrows(RuntimeException.class,
-            () -> ParagraphTextParser.parse("%spark.pyspark(pool=\\"),
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage(
             "Problems by parsing paragraph. Unfinished escape sequence");
+    ParagraphTextParser.parse("%spark.pyspark(pool=\\");
   }
 
   @Test
   public void testParagraphTextEmptyKey() {
-    assertThrows((RuntimeException.class),
-            () -> ParagraphTextParser.parse("%spark.pyspark(pool=123, ,)"),
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage(
             "Problems by parsing paragraph. Local property key is empty");
+    ParagraphTextParser.parse("%spark.pyspark(pool=123, ,)");
   }
 }

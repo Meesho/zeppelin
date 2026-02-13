@@ -16,7 +16,11 @@
  */
 package org.apache.zeppelin.rest.message;
 
+import com.google.gson.Gson;
+
 import java.util.HashMap;
+
+import org.apache.zeppelin.common.JsonSerializable;
 
 /**
  * NewParagraphRequest rest api request message
@@ -26,18 +30,15 @@ import java.util.HashMap;
  * table,pieChart,multibarChart,stackedAreaChart,lineChart,scatterChart
  * colWidth (optional), e.g. 12.0
  */
-public class NewParagraphRequest {
+public class NewParagraphRequest implements JsonSerializable {
+  private static final Gson gson = new Gson();
 
-  private final String title;
-  private final String text;
-  private final Double index;
-  private final HashMap< String, Object > config;
+  String title;
+  String text;
+  Double index;
+  HashMap< String, Object > config;
 
-  public NewParagraphRequest(String title, String text, Double index, HashMap<String, Object> config) {
-    this.title = title;
-    this.text = text;
-    this.index = index;
-    this.config = config;
+  public NewParagraphRequest() {
   }
 
   public String getTitle() {
@@ -54,5 +55,13 @@ public class NewParagraphRequest {
 
   public HashMap< String, Object > getConfig() {
     return config;
+  }
+
+  public String toJson() {
+    return gson.toJson(this);
+  }
+
+  public static NewParagraphRequest fromJson(String json) {
+    return gson.fromJson(json, NewParagraphRequest.class);
   }
 }

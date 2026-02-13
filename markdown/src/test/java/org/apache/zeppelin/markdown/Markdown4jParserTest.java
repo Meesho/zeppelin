@@ -17,20 +17,20 @@
 
 package org.apache.zeppelin.markdown;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertEquals;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.Properties;
 
 import org.apache.zeppelin.interpreter.InterpreterResult;
 
-class Markdown4jParserTest {
+public class Markdown4jParserTest {
   Markdown md;
 
-  @BeforeEach
+  @Before
   public void setUp() {
     Properties props = new Properties();
     props.put(Markdown.MARKDOWN_PARSER_TYPE, Markdown.PARSER_TYPE_MARKDOWN4J);
@@ -38,13 +38,13 @@ class Markdown4jParserTest {
     md.open();
   }
 
-  @AfterEach
+  @After
   public void tearDown() {
     md.close();
   }
 
   @Test
-  void testStrikethrough() {
+  public void testStrikethrough() {
     InterpreterResult result = md.interpret("This is ~~deleted~~ text", null);
     assertEquals("<p>This is <s>deleted</s> text</p>\n", result.message().get(0).getData());
   }

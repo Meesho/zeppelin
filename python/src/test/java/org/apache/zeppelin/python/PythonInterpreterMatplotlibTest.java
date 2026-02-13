@@ -26,27 +26,27 @@ import org.apache.zeppelin.interpreter.InterpreterOutput;
 import org.apache.zeppelin.interpreter.InterpreterOutputListener;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResultMessageOutput;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
-class PythonInterpreterMatplotlibTest implements InterpreterOutputListener {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+
+public class PythonInterpreterMatplotlibTest implements InterpreterOutputListener {
   private InterpreterGroup intpGroup;
   private PythonInterpreter python;
 
   private InterpreterContext context;
   InterpreterOutput out;
 
-  @BeforeEach
+  @Before
   public void setUp() throws Exception {
     Properties p = new Properties();
     p.setProperty("zeppelin.python", "python");
@@ -74,24 +74,24 @@ class PythonInterpreterMatplotlibTest implements InterpreterOutputListener {
     python.open();
   }
 
-  @AfterEach
+  @After
   public void afterTest() throws IOException, InterpreterException {
     python.close();
   }
 
   @Test
-  void dependenciesAreInstalled() throws InterpreterException {
+  public void dependenciesAreInstalled() throws InterpreterException {
     // matplotlib
     InterpreterResult ret = python.interpret("import matplotlib", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, ret.code(), ret.message().toString());
+    assertEquals(ret.message().toString(), InterpreterResult.Code.SUCCESS, ret.code());
 
     // inline backend
     ret = python.interpret("import backend_zinline", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, ret.code(), ret.message().toString());
+    assertEquals(ret.message().toString(), InterpreterResult.Code.SUCCESS, ret.code());
   }
 
   @Test
-  void showPlot() throws IOException, InterpreterException {
+  public void showPlot() throws IOException, InterpreterException {
     // Simple plot test
     InterpreterResult ret;
     ret = python.interpret("import matplotlib.pyplot as plt", context);
@@ -99,19 +99,19 @@ class PythonInterpreterMatplotlibTest implements InterpreterOutputListener {
     ret = python.interpret("plt.plot([1, 2, 3])", context);
     ret = python.interpret("plt.show()", context);
 
-    assertEquals(InterpreterResult.Code.SUCCESS, ret.code(),
-        new String(out.getOutputAt(0).toByteArray()));
-    assertEquals(InterpreterResult.Type.TEXT, out.getOutputAt(0).getType(),
-        new String(out.getOutputAt(0).toByteArray()));
-    assertEquals(InterpreterResult.Type.HTML, out.getOutputAt(1).getType(),
-        new String(out.getOutputAt(1).toByteArray()));
+    assertEquals(new String(out.getOutputAt(0).toByteArray()),
+        InterpreterResult.Code.SUCCESS, ret.code());
+    assertEquals(new String(out.getOutputAt(0).toByteArray()),
+        InterpreterResult.Type.TEXT, out.getOutputAt(0).getType());
+    assertEquals(new String(out.getOutputAt(1).toByteArray()),
+        InterpreterResult.Type.HTML, out.getOutputAt(1).getType());
     assertTrue(new String(out.getOutputAt(1).toByteArray()).contains("data:image/png;base64"));
     assertTrue(new String(out.getOutputAt(1).toByteArray()).contains("<div>"));
   }
 
   @Test
   // Test for when configuration is set to auto-close figures after show().
-  void testClose() throws IOException, InterpreterException {
+  public void testClose() throws IOException, InterpreterException {
     InterpreterResult ret;
     InterpreterResult ret1;
     InterpreterResult ret2;
@@ -126,8 +126,8 @@ class PythonInterpreterMatplotlibTest implements InterpreterOutputListener {
     // type to HTML.
     ret = python.interpret("plt.show()", context);
 
-    assertEquals(InterpreterResult.Code.SUCCESS, ret.code(),
-        new String(out.getOutputAt(0).toByteArray()));
+    assertEquals(new String(out.getOutputAt(0).toByteArray()),
+        InterpreterResult.Code.SUCCESS, ret.code());
     assertEquals(0, ret.message().size());
 
     // Now test that new plot is drawn. It should be identical to the
@@ -146,7 +146,7 @@ class PythonInterpreterMatplotlibTest implements InterpreterOutputListener {
 
   @Test
   // Test for when configuration is set to not auto-close figures after show().
-  void testNoClose() throws IOException, InterpreterException {
+  public void testNoClose() throws IOException, InterpreterException {
     InterpreterResult ret;
     InterpreterResult ret1;
     InterpreterResult ret2;
@@ -173,6 +173,7 @@ class PythonInterpreterMatplotlibTest implements InterpreterOutputListener {
 
     assertNotSame(msg1, msg2);
   }
+
 
   @Override
   public void onUpdateAll(InterpreterOutput out) {

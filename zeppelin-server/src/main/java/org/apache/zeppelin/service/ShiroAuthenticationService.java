@@ -434,7 +434,7 @@ public class ShiroAuthenticationService implements AuthenticationService {
         return userlist;
       }
 
-      userquery = "SELECT ? FROM ?";
+      userquery = String.format("SELECT %s FROM %s", username, tablename);
     } catch (IllegalAccessException e) {
       LOGGER.error("Error while accessing dataSource for JDBC Realm", e);
       return new ArrayList<>();
@@ -443,8 +443,6 @@ public class ShiroAuthenticationService implements AuthenticationService {
     try {
       con = dataSource.getConnection();
       ps = con.prepareStatement(userquery);
-      ps.setString(1, username);
-      ps.setString(2, tablename);
       rs = ps.executeQuery();
       while (rs.next()) {
         userlist.add(rs.getString(1).trim());

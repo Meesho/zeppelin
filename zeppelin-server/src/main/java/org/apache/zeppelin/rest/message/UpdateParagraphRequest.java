@@ -17,15 +17,13 @@
 package org.apache.zeppelin.rest.message;
 
 /**
- * UpdateParagraphRequest rest api request message.
+ * UpdateParagraphRequest.
  */
 public class UpdateParagraphRequest {
-  private final String title;
-  private final String text;
+  String title;
+  String text;
 
-  public UpdateParagraphRequest(String title, String text) {
-    this.title = title;
-    this.text = text;
+  public UpdateParagraphRequest() {
   }
 
   public String getTitle() {
