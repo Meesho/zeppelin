@@ -34,6 +34,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import com.google.gson.Gson;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
@@ -43,6 +44,7 @@ import org.apache.shiro.subject.Subject;
 import org.apache.zeppelin.annotation.ZeppelinApi;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.AuthorizationService;
+import org.apache.zeppelin.notebook.Notebook;
 import org.apache.zeppelin.realm.jwt.JWTAuthenticationToken;
 import org.apache.zeppelin.realm.jwt.KnoxJwtRealm;
 import org.apache.zeppelin.realm.kerberos.KerberosRealm;
@@ -59,18 +61,20 @@ import org.slf4j.LoggerFactory;
 @Path("/login")
 @Produces("application/json")
 @Singleton
-public class LoginRestApi extends AbstractRestApi {
+public class LoginRestApi {
   private static final Logger LOG = LoggerFactory.getLogger(LoginRestApi.class);
+  private static final Gson GSON = new Gson();
   private final ZeppelinConfiguration zConf;
 
+  private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
 
   @Inject
-  public LoginRestApi(ZeppelinConfiguration zConf,
+  public LoginRestApi(Notebook notebook,
                       AuthenticationService authenticationService,
                       AuthorizationService authorizationService) {
-    super(authenticationService);
-    this.zConf = zConf;
+    this.zConf = notebook.getConf();
+    this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
   }
 

@@ -17,19 +17,19 @@
 
 package org.apache.zeppelin.elasticsearch.client;
 
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-class ElasticsearchClientTypeTest {
+public class ElasticsearchClientTypeTest {
 
   @Test
-  void it_should_return_http_when_reducing_on_http_types() {
+  public void it_should_return_http_when_reducing_on_http_types() {
     //GIVEN
     List<ElasticsearchClientType> httpTypes =
         new ArrayList<>(Arrays.asList(ElasticsearchClientType.HTTP, ElasticsearchClientType.HTTPS));
@@ -38,6 +38,6 @@ class ElasticsearchClientTypeTest {
         .map(ElasticsearchClientType::isHttp)
         .reduce(true, (ident, elasticsearchClientType) -> ident && elasticsearchClientType);
     //THEN
-    assertTrue(httpTypesReduced);
+    assertThat(httpTypesReduced, is(true));
   }
 }

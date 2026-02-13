@@ -38,7 +38,6 @@ import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.conf.ZeppelinConfiguration.ConfVars;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
-import org.apache.zeppelin.notebook.exception.CorruptedNoteException;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,13 +102,11 @@ public class VFSNotebookRepo implements NotebookRepo {
 
   private Map<String, NoteInfo> listFolder(FileObject fileObject) throws IOException {
     Map<String, NoteInfo> noteInfos = new HashMap<>();
-
-    if (fileObject.getName().getBaseName().startsWith(".")) {
-      LOGGER.warn("Skip hidden item: {}", fileObject.getName());
-      return noteInfos;
-    }
-
     if (fileObject.isFolder()) {
+      if (fileObject.getName().getBaseName().startsWith(".")) {
+        LOGGER.warn("Skip hidden folder: {}", fileObject.getName().getPath());
+        return noteInfos;
+      }
       for (FileObject child : fileObject.getChildren()) {
         noteInfos.putAll(listFolder(child));
       }
@@ -136,21 +133,10 @@ public class VFSNotebookRepo implements NotebookRepo {
         NameScope.DESCENDENT);
     String json = IOUtils.toString(noteFile.getContent().getInputStream(),
         conf.getString(ConfVars.ZEPPELIN_ENCODING));
-
-    try {
-      Note note = Note.fromJson(noteId, json);
-      // setPath here just for testing, because actually NoteManager will setPath
-      note.setPath(notePath);
-      return note;
-    } catch (CorruptedNoteException e) {
-      String errorMessage = String.format(
-          "Fail to parse note json. Please check the file at this path to resolve the issue. "
-              + "Path: %s, "
-              + "Content: %s",
-          rootNotebookFolder + notePath, json
-      );
-      throw new CorruptedNoteException(noteId, errorMessage, e);
-    }
+    Note note = Note.fromJson(noteId, json);
+    // setPath here just for testing, because actually NoteManager will setPath
+    note.setPath(notePath);
+    return note;
   }
 
   @Override

@@ -17,7 +17,6 @@
 
 package org.apache.zeppelin.interpreter.remote;
 
-import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.TException;
@@ -45,9 +44,6 @@ public class PooledRemoteClient<T extends TServiceClient> implements AutoCloseab
     GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
     poolConfig.setMaxTotal(connectionPoolSize);
     poolConfig.setMaxIdle(connectionPoolSize);
-    // ZEPPELIN-5875 maven-shade-plugin issue
-    // `org/apache/zeppelin/shaded/org.apache.zeppelin.shaded.org.apache.commons.pool2.impl.DefaultEvictionPolicy`
-    poolConfig.setEvictionPolicyClassName(DefaultEvictionPolicy.class.getName());
     this.clientPool = new GenericObjectPool<>(remoteClientFactory, poolConfig);
   }
 

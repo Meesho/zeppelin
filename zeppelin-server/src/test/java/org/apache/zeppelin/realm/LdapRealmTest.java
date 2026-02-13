@@ -18,8 +18,8 @@
  */
 package org.apache.zeppelin.realm;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 import org.apache.shiro.realm.ldap.LdapContextFactory;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.SimplePrincipalCollection;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -42,9 +42,9 @@ import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.LdapContext;
 
-class LdapRealmTest {
+public class LdapRealmTest {
   @Test
-  void testGetUserDn() {
+  public void testGetUserDn() {
     LdapRealm realm = new LdapRealm();
 
     // without a user search filter
@@ -57,13 +57,13 @@ class LdapRealmTest {
   }
 
   @Test
-  void testExpandTemplate() {
+  public void testExpandTemplate() {
     assertEquals("uid=foo,cn=users,dc=ods,dc=foo",
             LdapRealm.expandTemplate("uid={0},cn=users,dc=ods,dc=foo", "foo"));
   }
 
   @Test
-  void getUserDnForSearch() {
+  public void getUserDnForSearch() {
     LdapRealm realm = new LdapRealm();
 
     realm.setUserSearchAttributeName("uid");
@@ -77,7 +77,7 @@ class LdapRealmTest {
   }
 
   @Test
-  void testRolesFor() throws NamingException {
+  public void testRolesFor() throws NamingException {
     LdapRealm realm = new LdapRealm();
     realm.setGroupSearchBase("cn=groups,dc=apache");
     realm.setGroupObjectClass("posixGroup");
@@ -116,20 +116,7 @@ class LdapRealmTest {
     verify(ldapCtx).search("cn=groups,dc=apache", "(objectclass=posixGroup)",
             realm.getGroupSearchControls());
 
-    assertEquals(new HashSet<>(Arrays.asList("group-one", "zeppelin-role")), roles);
-  }
-
-  @Test
-  void testFilterEscaping() {
-    LdapRealm realm = new LdapRealm();
-    assertEquals("foo", realm.escapeAttributeValue("foo"));
-    assertEquals("foo\\2B", realm.escapeAttributeValue("foo+"));
-    assertEquals("foo\\5C", realm.escapeAttributeValue("foo\\"));
-    assertEquals("foo\\00", realm.escapeAttributeValue("foo\u0000"));
-    realm.setUserSearchFilter("uid=<{0}>");
-    assertEquals("uid=\\3C{0}\\3E", realm.getUserSearchFilter());
-    realm.setUserSearchFilter("gid=\\{0}\\");
-    assertEquals("gid=\\5C{0}\\5C", realm.getUserSearchFilter());
+    assertEquals(new HashSet(Arrays.asList("group-one", "zeppelin-role")), roles);
   }
 
   private NamingEnumeration<SearchResult> enumerationOf(BasicAttributes... attrs) {

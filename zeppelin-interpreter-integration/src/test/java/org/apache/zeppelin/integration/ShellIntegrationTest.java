@@ -24,32 +24,32 @@ import org.apache.zeppelin.rest.AbstractTestRestApi;
 import org.apache.zeppelin.scheduler.Job;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.utils.TestUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ShellIntegrationTest extends AbstractTestRestApi {
 
 
-  @BeforeAll
+  @BeforeClass
   public static void setUp() throws Exception {
     System.setProperty(ZeppelinConfiguration.ConfVars.ZEPPELIN_HELIUM_REGISTRY.getVarName(),
             "helium");
     AbstractTestRestApi.startUp(ShellIntegrationTest.class.getSimpleName());
   }
 
-  @AfterAll
+  @AfterClass
   public static void destroy() throws Exception {
     AbstractTestRestApi.shutDown();
   }
 
   @Test
-  void testBasicShell() throws IOException {
+  public void testBasicShell() throws IOException {
     String noteId = null;
     try {
       noteId = TestUtils.getInstance(Notebook.class).createNote("note1", AuthenticationInfo.ANONYMOUS);
@@ -67,7 +67,8 @@ public class ShellIntegrationTest extends AbstractTestRestApi {
           p.setText("%sh invalid_cmd");
           note.run(p.getId(), true);
           assertEquals(Job.Status.ERROR, p.getStatus());
-          assertTrue(p.getReturn().message().get(0).getData().contains("command not found"), p.getReturn().toString());
+          assertTrue(p.getReturn().toString(),
+                  p.getReturn().message().get(0).getData().contains("command not found"));
 
           // test shell environment variable
           p.setText("%sh a='hello world'\n" +

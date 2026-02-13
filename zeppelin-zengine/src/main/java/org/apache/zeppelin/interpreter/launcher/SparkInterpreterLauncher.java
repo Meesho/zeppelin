@@ -62,11 +62,10 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
   public Map<String, String> buildEnvFromProperties(InterpreterLaunchContext context) throws IOException {
     Map<String, String> env = super.buildEnvFromProperties(context);
     Properties sparkProperties = new Properties();
-    String spMaster = getSparkMaster(context);
+    String spMaster = getSparkMaster();
     if (spMaster != null) {
       sparkProperties.put(SPARK_MASTER_KEY, spMaster);
     }
-    Properties properties = context.getProperties();
     for (String key : properties.stringPropertyNames()) {
       String propValue = properties.getProperty(key);
       if (RemoteInterpreterUtils.isEnvString(key) && !StringUtils.isBlank(propValue)) {
@@ -92,18 +91,18 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
       sparkProperties.setProperty("spark.app.name", context.getInterpreterGroupId());
     }
 
-    setupPropertiesForPySpark(sparkProperties, context);
-    setupPropertiesForSparkR(sparkProperties, context);
+    setupPropertiesForPySpark(sparkProperties);
+    setupPropertiesForSparkR(sparkProperties);
 
     String condaEnvName = context.getProperties().getProperty("zeppelin.interpreter.conda.env.name");
     if (StringUtils.isNotBlank(condaEnvName)) {
-      if (!isYarnCluster(context)) {
+      if (!isYarnCluster()) {
         throw new IOException("zeppelin.interpreter.conda.env.name only works for yarn-cluster mode");
       }
       sparkProperties.setProperty("spark.pyspark.python", condaEnvName + "/bin/python");
     }
 
-    if (isYarnCluster(context)) {
+    if (isYarnCluster()) {
       env.put("ZEPPELIN_SPARK_YARN_CLUSTER", "true");
       sparkProperties.setProperty("spark.yarn.submit.waitAppCompletion", "false");
       // Need to set `zeppelin.interpreter.forceShutdown` in interpreter properties directly
@@ -117,7 +116,7 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
               " to false if you want to use other modes.");
     }
 
-    if (isYarnMode(context) && getDeployMode(context).equals("cluster")) {
+    if (isYarnMode() && getDeployMode().equals("cluster")) {
       if (sparkProperties.containsKey("spark.files")) {
         sparkProperties.put("spark.files", sparkProperties.getProperty("spark.files") + "," +
             zConf.getConfDir() + "/log4j_yarn_cluster.properties");
@@ -130,7 +129,7 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
 
     String scalaVersion = null;
     try {
-      String sparkHome = getEnv("SPARK_HOME", context);
+      String sparkHome = getEnv("SPARK_HOME");
       LOGGER.info("SPARK_HOME: {}", sparkHome);
       scalaVersion = detectSparkScalaVersion(sparkHome, env);
       LOGGER.info("Scala version for Spark: {}", scalaVersion);
@@ -139,8 +138,8 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
       throw new IOException("Fail to detect scala version, the reason is:"+ e.getMessage());
     }
 
-    if (isYarnMode(context)
-      && getDeployMode(context).equals("cluster")) {
+    if (isYarnMode()
+        && getDeployMode().equals("cluster")) {
       try {
         List<String> additionalJars = new ArrayList<>();
         Path localRepoPath =
@@ -214,7 +213,7 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
     // It is encouraged to set env in interpreter setting, but just for backward compatibility,
     // we also fallback to zeppelin-env.sh if it is not specified in interpreter setting.
     for (String envName : new String[]{"SPARK_HOME", "SPARK_CONF_DIR", "HADOOP_CONF_DIR"})  {
-      String envValue = getEnv(envName, context);
+      String envValue = getEnv(envName);
       if (!StringUtils.isBlank(envValue)) {
         env.put(envName, envValue);
       }
@@ -236,9 +235,9 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
     env.put("PYSPARK_PIN_THREAD", "true");
 
     // ZEPPELIN_INTP_CLASSPATH
-    String sparkConfDir = getEnv("SPARK_CONF_DIR", context);
+    String sparkConfDir = getEnv("SPARK_CONF_DIR");
     if (StringUtils.isBlank(sparkConfDir)) {
-      String sparkHome = getEnv("SPARK_HOME", context);
+      String sparkHome = getEnv("SPARK_HOME");
       sparkConfDir = sparkHome + "/conf";
     }
     Properties sparkDefaultProperties = new Properties();
@@ -253,7 +252,7 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
       LOGGER.warn("spark-defaults.conf doesn't exist: {}", sparkDefaultFile.getAbsolutePath());
     }
 
-    if (isYarnMode(context)) {
+    if (isYarnMode()) {
       boolean runAsLoginUser = Boolean.parseBoolean(context
               .getProperties()
               .getProperty("zeppelin.spark.run.asLoginUser", "true"));
@@ -279,7 +278,9 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
     Matcher matcher = pattern.matcher(processOutput);
     if (matcher.find()) {
       String scalaVersion = matcher.group(1);
-      if (scalaVersion.startsWith("2.12")) {
+      if (scalaVersion.startsWith("2.11")) {
+        return "2.11";
+      } else if (scalaVersion.startsWith("2.12")) {
         return "2.12";
       } else if (scalaVersion.startsWith("2.13")) {
         return "2.13";
@@ -292,26 +293,37 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
   }
 
   private String detectSparkScalaVersionByReplClass(String sparkHome) throws Exception {
-    File sparkJarsFolder = new File(sparkHome + "/jars");
-    File[] sparkJarFiles = sparkJarsFolder.listFiles();
-    long sparkReplFileNum =
-            Stream.of(sparkJarFiles).filter(file -> file.getName().contains("spark-repl_")).count();
-    if (sparkReplFileNum == 0) {
-      throw new Exception("No spark-repl jar found in SPARK_HOME: " + sparkHome);
-    }
-    if (sparkReplFileNum > 1) {
-      throw new Exception("Multiple spark-repl jar found in SPARK_HOME: " + sparkHome);
-    }
-    boolean sparkRepl212Exists =
-            Stream.of(sparkJarFiles).anyMatch(file -> file.getName().contains("spark-repl_2.12"));
-    boolean sparkRepl213Exists =
-            Stream.of(sparkJarFiles).anyMatch(file -> file.getName().contains("spark-repl_2.13"));
-    if (sparkRepl212Exists) {
-      return "2.12";
-    } else if (sparkRepl213Exists) {
-      return "2.13";
+    File sparkLibFolder = new File(sparkHome + "/lib");
+    if (sparkLibFolder.exists()) {
+      // spark 1.6 if spark/lib exists
+      File[] sparkAssemblyJars = new File(sparkHome + "/lib").listFiles(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+          return name.contains("spark-assembly");
+        }
+      });
+      if (sparkAssemblyJars.length == 0) {
+        throw new Exception("No spark assembly file found in SPARK_HOME: " + sparkHome);
+      }
+      if (sparkAssemblyJars.length > 1) {
+        throw new Exception("Multiple spark assembly file found in SPARK_HOME: " + sparkHome);
+      }
+      try (URLClassLoader urlClassLoader = new URLClassLoader(new URL[]{sparkAssemblyJars[0].toURI().toURL()});){
+        urlClassLoader.loadClass("org.apache.spark.repl.SparkCommandLine");
+        return "2.10";
+      } catch (ClassNotFoundException e) {
+        return "2.11";
+      }
     } else {
-      throw new Exception("Can not detect the scala version by spark-repl");
+      // spark 2.x if spark/lib doesn't exists
+      File sparkJarsFolder = new File(sparkHome + "/jars");
+      boolean sparkRepl211Exists =
+              Stream.of(sparkJarsFolder.listFiles()).anyMatch(file -> file.getName().contains("spark-repl_2.11"));
+      if (sparkRepl211Exists) {
+        return "2.11";
+      } else {
+        return "2.10";
+      }
     }
   }
 
@@ -322,8 +334,8 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
    * 2. zeppelin-env.sh
    *
    */
-  private String getEnv(String envName, InterpreterLaunchContext context) {
-    String env = context.getProperties().getProperty(envName);
+  private String getEnv(String envName) {
+    String env = properties.getProperty(envName);
     if (StringUtils.isBlank(env)) {
       env = System.getenv(envName);
     }
@@ -338,9 +350,8 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
     return !StringUtils.isEmpty(key) && key.startsWith("spark.") && !StringUtils.isEmpty(value);
   }
 
-  private void setupPropertiesForPySpark(Properties sparkProperties,
-    InterpreterLaunchContext context) {
-    if (isYarnMode(context)) {
+  private void setupPropertiesForPySpark(Properties sparkProperties) {
+    if (isYarnMode()) {
       sparkProperties.setProperty("spark.yarn.isPython", "true");
     }
   }
@@ -355,13 +366,12 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
     }
   }
 
-  private void setupPropertiesForSparkR(Properties sparkProperties,
-    InterpreterLaunchContext context) {
-    if (isYarnMode(context)) {
-      String sparkHome = getEnv("SPARK_HOME", context);
+  private void setupPropertiesForSparkR(Properties sparkProperties) {
+    if (isYarnMode()) {
+      String sparkHome = getEnv("SPARK_HOME");
       File sparkRBasePath = null;
       if (sparkHome == null) {
-        if (!getSparkMaster(context).startsWith("local")) {
+        if (!getSparkMaster().startsWith("local")) {
           throw new RuntimeException("SPARK_HOME is not specified in interpreter-setting" +
                   " for non-local mode, if you specify it in zeppelin-env.sh, please move that into " +
                   " interpreter setting");
@@ -392,10 +402,9 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
    * 3. use local[*]
    * @return Spark Master string
    */
-  private String getSparkMaster(InterpreterLaunchContext context) {
+  private String getSparkMaster() {
     if (!sparkMaster.isPresent()) {
-      Properties properties = context.getProperties();
-      String master = context.getProperties().getProperty(SPARK_MASTER_KEY);
+      String master = properties.getProperty(SPARK_MASTER_KEY);
       if (master == null) {
         master = properties.getProperty("master");
         if (master == null) {
@@ -409,15 +418,15 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
     return sparkMaster.get();
   }
 
-  private String getDeployMode(InterpreterLaunchContext context) {
-    if (getSparkMaster(context).equals("yarn-client")) {
+  private String getDeployMode() {
+    if (getSparkMaster().equals("yarn-client")) {
       return "client";
-    } else if (getSparkMaster(context).equals("yarn-cluster")) {
+    } else if (getSparkMaster().equals("yarn-cluster")) {
       return "cluster";
-    } else if (getSparkMaster(context).startsWith("local")) {
+    } else if (getSparkMaster().startsWith("local")) {
       return "client";
     } else {
-      String deployMode = context.getProperties().getProperty("spark.submit.deployMode");
+      String deployMode = properties.getProperty("spark.submit.deployMode");
       if (deployMode == null) {
         throw new RuntimeException("master is set as yarn, but spark.submit.deployMode " +
             "is not specified");
@@ -429,11 +438,11 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
     }
   }
 
-  private boolean isYarnMode(InterpreterLaunchContext context) {
-    return getSparkMaster(context).startsWith("yarn");
+  private boolean isYarnMode() {
+    return getSparkMaster().startsWith("yarn");
   }
 
-  private boolean isYarnCluster(InterpreterLaunchContext context) {
-    return isYarnMode(context) && "cluster".equalsIgnoreCase(getDeployMode(context));
+  private boolean isYarnCluster() {
+    return isYarnMode() && "cluster".equalsIgnoreCase(getDeployMode());
   }
 }

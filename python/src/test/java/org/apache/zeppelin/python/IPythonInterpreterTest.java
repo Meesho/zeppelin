@@ -28,15 +28,9 @@ import org.apache.zeppelin.interpreter.InterpreterResult.Code;
 import org.apache.zeppelin.interpreter.InterpreterResultMessage;
 import org.apache.zeppelin.interpreter.LazyOpenInterpreter;
 import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,12 +44,11 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/**
- * This test class is also used in spark interpreter module
- *
- * @author pdallig
- */
-@SuppressWarnings("java:S5786")
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+
 public class IPythonInterpreterTest extends BasePythonInterpreterTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(IPythonInterpreterTest.class);
@@ -80,7 +73,6 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
   }
 
   @Override
-  @BeforeEach
   public void setUp() throws InterpreterException {
     Properties properties = initIntpProperties();
     startInterpreter(properties);
@@ -101,7 +93,6 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
   }
 
   @Override
-  @AfterEach
   public void tearDown() throws InterpreterException {
     intpGroup.close();
   }
@@ -111,17 +102,17 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
     // only ipython can do this kind of code completion. native Python don't support this,
     // it requires you define a variable first in another interpret method.
     // TODO(zjffdu) enable after we upgrade miniconda
-    // InterpreterContext context = getInterpreterContext();
-    // String st = "a='hello'\na.";
-    // List<InterpreterCompletion> completions = interpreter.completion(st, st.length(),
-    // context);
-    // assertTrue(completions.size() > 0);
+    //    InterpreterContext context = getInterpreterContext();
+    //    String st = "a='hello'\na.";
+    //    List<InterpreterCompletion> completions = interpreter.completion(st, st.length(),
+    //            context);
+    //    assertTrue(completions.size() > 0);
 
     super.testCodeCompletion();
   }
 
   @Test
-  void testIpythonKernelCrash_shouldNotHangExecution()
+  public void testIpythonKernelCrash_shouldNotHangExecution()
       throws InterpreterException, IOException {
     // The goal of this test is to ensure that we handle case when the kernel die.
     // In order to do so, we will kill the kernel process from the python code.
@@ -159,12 +150,13 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
     result = interpreter.interpret(codeKillKernel, context);
     assertEquals(Code.ERROR, result.code());
     output = context.out.toInterpreterResultMessage().get(0);
-    assertTrue(output.getData().contains("Ipython kernel has been stopped. Please check logs. "
-        + "It might be because of an out of memory issue."), output.getData());
+    assertTrue(output.getData(),
+            output.getData().contains("Ipython kernel has been stopped. Please check logs. "
+        + "It might be because of an out of memory issue."));
   }
 
   @Test
-  void testIPythonAdvancedFeatures()
+  public void testIPythonAdvancedFeatures()
       throws InterpreterException, InterruptedException, IOException {
     // ipython help
     InterpreterContext context = getInterpreterContext();
@@ -205,7 +197,7 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
   }
 
   @Test
-  void testIPythonPlotting() throws InterpreterException, InterruptedException, IOException {
+  public void testIPythonPlotting() throws InterpreterException, InterruptedException, IOException {
     // matplotlib
     InterpreterContext context = getInterpreterContext();
     InterpreterResult result = interpreter.interpret("%matplotlib inline\n" +
@@ -226,8 +218,8 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
         hasLineText = true;
       }
     }
-    assertTrue(hasImageOutput, "No Image Output");
-    assertTrue(hasLineText, "No Line Text");
+    assertTrue("No Image Output", hasImageOutput);
+    assertTrue("No Line Text", hasLineText);
 
     if (!enableBokehTest) {
       LOGGER.info("Bokeh test is skipped");
@@ -240,7 +232,7 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
     result = interpreter.interpret("from bokeh.io import output_notebook, show\n" +
         "from bokeh.plotting import figure\n" +
         "output_notebook()", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, result.code(), context.out.toString());
+    assertEquals(context.out.toString(), InterpreterResult.Code.SUCCESS, result.code());
     interpreterResultMessages = context.out.toInterpreterResultMessage();
 
     if (interpreterResultMessages.size() == 3) {
@@ -267,8 +259,8 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
         "p = figure(title=\"simple line example\", x_axis_label='x', y_axis_label='y')\n" +
         "p.line(x, y, legend=\"Temp.\", line_width=2)\n" +
         "show(p)", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, result.code(),
-        context.out.toInterpreterResultMessage().toString());
+    assertEquals(context.out.toInterpreterResultMessage().toString(),
+            InterpreterResult.Code.SUCCESS, result.code());
     interpreterResultMessages = context.out.toInterpreterResultMessage();
     if (interpreterResultMessages.size() == 3) {
       // the first InterpreterResultMessage is empty text for python3 or spark 1.6
@@ -288,70 +280,68 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
 
     // TODO(zjffdu) ggplot is broken https://github.com/yhat/ggpy/issues/662
     // ggplot
-    // context = getInterpreterContext();
-    // result = interpreter.interpret("from ggplot import *\n" +
-    // "ggplot(diamonds, aes(x='price', fill='cut')) +\\\n" +
-    // " geom_density(alpha=0.25) +\\\n" +
-    // " facet_wrap(\"clarity\")", context);
-    // assertEquals(InterpreterResult.Code.SUCCESS, result.code());
-    // interpreterResultMessages = context.out.toInterpreterResultMessage();
-    // // the order of IMAGE and TEXT is not determined
-    // // check there must be one IMAGE output
-    // hasImageOutput = false;
-    // for (InterpreterResultMessage msg : interpreterResultMessages) {
-    // if (msg.getType() == InterpreterResult.Type.IMG) {
-    // hasImageOutput = true;
-    // }
-    // }
-    // assertTrue("No Image Output", hasImageOutput);
+    //    context = getInterpreterContext();
+    //    result = interpreter.interpret("from ggplot import *\n" +
+    //        "ggplot(diamonds, aes(x='price', fill='cut')) +\\\n" +
+    //        "    geom_density(alpha=0.25) +\\\n" +
+    //        "    facet_wrap(\"clarity\")", context);
+    //    assertEquals(InterpreterResult.Code.SUCCESS, result.code());
+    //    interpreterResultMessages = context.out.toInterpreterResultMessage();
+    //    // the order of IMAGE and TEXT is not determined
+    //    // check there must be one IMAGE output
+    //    hasImageOutput = false;
+    //    for (InterpreterResultMessage msg : interpreterResultMessages) {
+    //      if (msg.getType() == InterpreterResult.Type.IMG) {
+    //        hasImageOutput = true;
+    //      }
+    //    }
+    //    assertTrue("No Image Output", hasImageOutput);
 
     // hvplot
     context = getInterpreterContext();
     result = interpreter.interpret(
-        "import pandas as pd, numpy as np\n"
-            + "idx = pd.date_range('1/1/2000', periods=1000)\n"
-            + "df = pd.DataFrame(np.random.randn(1000, 4),"
-            + " index=idx, columns=list('ABCD')).cumsum()\n"
-            + "import hvplot.pandas\n"
-            + "df.hvplot()",
-        context);
-    assertEquals(InterpreterResult.Code.SUCCESS, result.code(),
-        context.out.toInterpreterResultMessage().get(0).getData());
+        "import pandas as pd, numpy as np\n" +
+        "idx = pd.date_range('1/1/2000', periods=1000)\n" +
+        "df = pd.DataFrame(np.random.randn(1000, 4), index=idx, columns=list('ABCD')).cumsum()\n" +
+        "import hvplot.pandas\n" +
+        "df.hvplot()", context);
+    assertEquals(context.out.toInterpreterResultMessage().get(0).getData(),
+            InterpreterResult.Code.SUCCESS, result.code());
     // docs_json is the source data of plotting which bokeh would use to render the plotting.
-    assertTrue(context.out.toString().contains("docs_json"), context.out.toString());
+    assertTrue(context.out.toString(), context.out.toString().contains("docs_json"));
   }
+
 
   // TODO(zjffdu) Enable it after new altair is released with this PR.
   // https://github.com/altair-viz/altair/pull/1620
-  // @Test
+  //@Test
   public void testHtmlOutput() throws InterpreterException, IOException {
     // html output
     InterpreterContext context = getInterpreterContext();
     InterpreterResult result = interpreter.interpret(
-        "        import altair as alt\n" +
-            "        print(alt.renderers.active)\n" +
-            "        alt.renderers.enable(\"colab\")\n" +
             "        import altair as alt\n" +
-            "        # load a simple dataset as a pandas DataFrame\n" +
-            "        from vega_datasets import data\n" +
-            "        cars = data.cars()\n" +
-            "        \n" +
-            "        alt.Chart(cars).mark_point().encode(\n" +
-            "            x='Horsepower',\n" +
-            "            y='Miles_per_Gallon',\n" +
-            "            color='Origin',\n" +
-            "        ).interactive()",
-        context);
+                    "        print(alt.renderers.active)\n" +
+                    "        alt.renderers.enable(\"colab\")\n" +
+                    "        import altair as alt\n" +
+                    "        # load a simple dataset as a pandas DataFrame\n" +
+                    "        from vega_datasets import data\n" +
+                    "        cars = data.cars()\n" +
+                    "        \n" +
+                    "        alt.Chart(cars).mark_point().encode(\n" +
+                    "            x='Horsepower',\n" +
+                    "            y='Miles_per_Gallon',\n" +
+                    "            color='Origin',\n" +
+                    "        ).interactive()", context);
     assertEquals(InterpreterResult.Code.SUCCESS, result.code());
     assertEquals(2, context.out.size());
     assertEquals(InterpreterResult.Type.TEXT,
-        context.out.toInterpreterResultMessage().get(0).getType());
+            context.out.toInterpreterResultMessage().get(0).getType());
     assertEquals(InterpreterResult.Type.HTML,
-        context.out.toInterpreterResultMessage().get(1).getType());
+            context.out.toInterpreterResultMessage().get(1).getType());
   }
 
   @Test
-  void testIpython_shouldNotHang_whenCallingAutoCompleteAndInterpretConcurrently()
+  public void testIpython_shouldNotHang_whenCallingAutoCompleteAndInterpretConcurrently()
       throws InterpreterException,
       InterruptedException, TimeoutException, ExecutionException {
     tearDown();
@@ -367,16 +357,16 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
     // will not make execute hang forever.
     ExecutorService pool = Executors.newFixedThreadPool(2);
     FutureTask<InterpreterResult> interpretFuture =
-        new FutureTask<>(new Callable<InterpreterResult>() {
+        new FutureTask(new Callable() {
           @Override
-          public InterpreterResult call() throws Exception {
+          public Object call() throws Exception {
             return interpreter.interpret(code, getInterpreterContext());
           }
         });
     FutureTask<List<InterpreterCompletion>> completionFuture =
-        new FutureTask<>(new Callable<List<InterpreterCompletion>>() {
+        new FutureTask(new Callable() {
           @Override
-          public List<InterpreterCompletion> call() throws Exception {
+          public Object call() throws Exception {
             return interpreter.completion(base, base.length(), getInterpreterContext());
           }
         });
@@ -394,7 +384,7 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
   }
 
   @Test
-  void testGrpcFrameSize() throws InterpreterException, IOException {
+  public void testGrpcFrameSize() throws InterpreterException, IOException {
     tearDown();
 
     Properties properties = initIntpProperties();
@@ -435,15 +425,18 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
   }
 
   @Test
-  void testIPythonProcessKilled() throws InterruptedException, TimeoutException {
+  public void testIPythonProcessKilled() throws InterruptedException, TimeoutException {
     final Waiter waiter = new Waiter();
     Thread thread = new Thread() {
       @Override
       public void run() {
         try {
           InterpreterResult result = interpreter.interpret("import time\ntime.sleep(1000)",
-              getInterpreterContext());
+                  getInterpreterContext());
           waiter.assertEquals(InterpreterResult.Code.ERROR, result.code());
+          waiter.assertEquals(
+                  "IPython kernel is abnormally exited, please check your code and log.",
+                  result.message().get(0).getData());
         } catch (InterpreterException e) {
           waiter.fail("Should not throw exception\n" + ExceptionUtils.getStackTrace(e));
         }
@@ -452,8 +445,8 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
     };
     thread.start();
     Thread.sleep(3000);
-    IPythonInterpreter iPythonInterpreter =
-        (IPythonInterpreter) ((LazyOpenInterpreter) interpreter).getInnerInterpreter();
+    IPythonInterpreter iPythonInterpreter = (IPythonInterpreter)
+            ((LazyOpenInterpreter) interpreter).getInnerInterpreter();
     iPythonInterpreter.getKernelProcessLauncher().stop();
     waiter.await(3000);
   }
@@ -470,7 +463,7 @@ public class IPythonInterpreterTest extends BasePythonInterpreterTest {
       fail("Should not be able to start IPythonInterpreter");
     } catch (InterpreterException e) {
       String exceptionMsg = ExceptionUtils.getStackTrace(e);
-      assertTrue(exceptionMsg.contains("No such file or directory"), exceptionMsg);
+      assertTrue(exceptionMsg, exceptionMsg.contains("No such file or directory"));
     }
   }
 

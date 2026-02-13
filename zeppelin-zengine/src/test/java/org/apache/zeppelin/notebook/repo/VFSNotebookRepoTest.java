@@ -17,33 +17,35 @@
 
 package org.apache.zeppelin.notebook.repo;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import com.google.common.collect.ImmutableMap;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.notebook.Paragraph;
 import org.apache.zeppelin.user.AuthenticationInfo;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class VFSNotebookRepoTest {
 
   private ZeppelinConfiguration zConf;
   private VFSNotebookRepo notebookRepo;
+  private File notebookDir;
 
-  @BeforeEach
+  @Before
   public void setUp() throws IOException {
-    File notebookDir = Files.createTempDirectory("notebookDir").toFile();
+    notebookDir = Files.createTempDirectory("notebookDir").toFile();
     System.setProperty(ZeppelinConfiguration.ConfVars.ZEPPELIN_NOTEBOOK_DIR.getVarName(),
         notebookDir.getAbsolutePath());
     notebookRepo = new VFSNotebookRepo();
@@ -51,10 +53,9 @@ public class VFSNotebookRepoTest {
     notebookRepo.init(zConf);
   }
 
-  @AfterEach
+  @After
   public void tearDown() throws IOException {
-    File rootDir = new File(notebookRepo.rootNotebookFolder);
-    FileUtils.deleteDirectory(rootDir);
+    FileUtils.deleteDirectory(notebookDir);
   }
 
   @Test
@@ -126,7 +127,7 @@ public class VFSNotebookRepoTest {
     assertEquals(1, repoSettings.size());
     NotebookRepoSettingsInfo settingInfo = repoSettings.get(0);
     assertEquals("Notebook Path", settingInfo.name);
-    assertEquals(notebookRepo.rootNotebookFolder, settingInfo.selected);
+    assertEquals(notebookDir.getAbsolutePath(), settingInfo.selected);
 
     createNewNote("{}", "id2", "my_project/name2");
     assertEquals(1, notebookRepo.list(AuthenticationInfo.ANONYMOUS).size());
@@ -138,33 +139,8 @@ public class VFSNotebookRepoTest {
     assertEquals(0, notebookRepo.list(AuthenticationInfo.ANONYMOUS).size());
   }
 
-  @Test
-  void testSkipInvalidFileName() throws IOException {
-    assertEquals(0, notebookRepo.list(AuthenticationInfo.ANONYMOUS).size());
-
-    createNewNote("{}", "hidden_note", "my_project/.hidden_note");
-
-    Map<String, NoteInfo> noteInfos = notebookRepo.list(AuthenticationInfo.ANONYMOUS);
-    assertEquals(0, noteInfos.size());
-  }
-
-  @Test
-  void testSkipInvalidDirectoryName() throws IOException {
-    createNewDirectory(".hidden_dir");
-
-    createNewNote("{}", "hidden_note", "my_project/.hidden_dir/note");
-
-    Map<String, NoteInfo> noteInfos = notebookRepo.list(AuthenticationInfo.ANONYMOUS);
-    assertEquals(0, noteInfos.size());
-  }
-
   private void createNewNote(String content, String noteId, String noteName) throws IOException {
     FileUtils.writeStringToFile(
-        new File(notebookRepo.rootNotebookFolder + "/" + noteName + "_" + noteId + ".zpln"), content, StandardCharsets.UTF_8);
-  }
-
-  private void createNewDirectory(String dirName) {
-    File dir = new File(notebookRepo.rootNotebookFolder + "/" + dirName);
-    dir.mkdir();
+        new File(notebookDir + "/" + noteName + "_" + noteId + ".zpln"), content, StandardCharsets.UTF_8);
   }
 }

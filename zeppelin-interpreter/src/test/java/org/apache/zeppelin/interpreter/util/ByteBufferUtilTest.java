@@ -18,17 +18,16 @@
 
 package org.apache.zeppelin.interpreter.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import org.junit.Test;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertEquals;
 
-class ByteBufferUtilTest {
+public class ByteBufferUtilTest {
 
   @Test
-  void fromByteBufferToByteBuffer() {
+  public void fromByteBufferToByteBuffer() {
     String str = "Hello world";
     ByteBuffer byteBuffer = ByteBufferUtils.stringToByteBuffer(str, Charset.defaultCharset());
     assertEquals(str, ByteBufferUtils.ByteBufferToString(byteBuffer, Charset.defaultCharset()));

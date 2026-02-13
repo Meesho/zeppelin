@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * Watch the change for the development mode support
  */
 public class InterpreterOutputChangeWatcher extends Thread {
-  private static final Logger LOGGER = LoggerFactory.getLogger(InterpreterOutputChangeWatcher.class);
+  Logger logger = LoggerFactory.getLogger(InterpreterOutputChangeWatcher.class);
 
   private WatchService watcher;
   private final List<File> watchFiles = new LinkedList<>();
@@ -68,7 +68,7 @@ public class InterpreterOutputChangeWatcher extends Thread {
     }
 
     Path dir = FileSystems.getDefault().getPath(dirString);
-    LOGGER.info("watch {}", dir);
+    logger.info("watch " + dir);
     WatchKey key = dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
     synchronized (watchKeys) {
       watchKeys.put(key, new File(dirString));
@@ -93,7 +93,6 @@ public class InterpreterOutputChangeWatcher extends Thread {
     watcher.close();
   }
 
-  @Override
   public void run() {
     while (!stop) {
       WatchKey key = null;
@@ -123,7 +122,7 @@ public class InterpreterOutputChangeWatcher extends Thread {
               } else {
                 changedFile = new File(watchKeys.get(key), filename.toString());
               }
-              LOGGER.info("File change detected {}", changedFile.getAbsolutePath());
+              logger.info("File change detected " + changedFile.getAbsolutePath());
               if (listener != null) {
                 listener.fileChanged(changedFile);
               }

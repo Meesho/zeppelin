@@ -16,14 +16,13 @@
  */
 package org.apache.zeppelin.server;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -37,13 +36,13 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * Basic CORS REST API tests.
  */
-class CorsFilterTest {
+public class CorsFilterTest {
   public static String[] headers = new String[8];
   public static Integer count = 0;
 
   @Test
   @SuppressWarnings("rawtypes")
-  void validCorsFilterTest() throws IOException, ServletException {
+  public void validCorsFilterTest() throws IOException, ServletException {
     CorsFilter filter = new CorsFilter();
     HttpServletResponse mockResponse = mock(HttpServletResponse.class);
     FilterChain mockedFilterChain = mock(FilterChain.class);
@@ -63,12 +62,12 @@ class CorsFilterTest {
     }).when(mockResponse).setHeader(anyString(), anyString());
 
     filter.doFilter(mockRequest, mockResponse, mockedFilterChain);
-    assertEquals("http://localhost:8080", headers[0]);
+    Assert.assertTrue(headers[0].equals("http://localhost:8080"));
   }
 
   @Test
   @SuppressWarnings("rawtypes")
-  void invalidCorsFilterTest() throws IOException, ServletException {
+  public void invalidCorsFilterTest() throws IOException, ServletException {
     CorsFilter filter = new CorsFilter();
     HttpServletResponse mockResponse = mock(HttpServletResponse.class);
     FilterChain mockedFilterChain = mock(FilterChain.class);
@@ -87,6 +86,6 @@ class CorsFilterTest {
     }).when(mockResponse).setHeader(anyString(), anyString());
 
     filter.doFilter(mockRequest, mockResponse, mockedFilterChain);
-    assertEquals("", headers[0]);
+    Assert.assertTrue(headers[0].equals(""));
   }
 }

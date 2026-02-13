@@ -24,11 +24,6 @@ public class SpellPackageInfo {
   private String magic;
   private String usage;
 
-  public SpellPackageInfo(String magic, String usage) {
-      this.magic = magic;
-      this.usage = usage;
-  }
-
   public String getMagic() {
     return magic;
   }

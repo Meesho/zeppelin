@@ -21,11 +21,13 @@ import org.apache.zeppelin.AbstractZeppelinIT;
 import org.apache.zeppelin.WebDriverManager;
 import org.apache.zeppelin.ZeppelinITUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.hamcrest.CoreMatchers;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ErrorCollector;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -35,17 +37,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.commons.io.FileUtils;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
-
 import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
+
+import static org.junit.Assert.assertTrue;
 
 public class PersonalizeActionsIT extends AbstractZeppelinIT {
   private static final Logger LOG = LoggerFactory.getLogger(PersonalizeActionsIT.class);
 
+  @Rule
+  public ErrorCollector collector = new ErrorCollector();
   static String shiroPath;
   static String authShiro = "[users]\n" +
       "admin = password1, admin\n" +
@@ -65,18 +66,8 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
 
   static String originalShiro = "";
 
-  @BeforeEach
-  public void startUpManager() throws IOException {
-    manager = new WebDriverManager();
-  }
-
-  @AfterEach
-  public void tearDownManager() throws IOException {
-    manager.close();
-  }
-
-  @BeforeAll
-  public static void startUp() throws IOException {
+  @BeforeClass
+  public static void startUp() {
     try {
       System.setProperty(ZeppelinConfiguration.ConfVars.ZEPPELIN_HOME.getVarName(), new File("../").getAbsolutePath());
       ZeppelinConfiguration conf = ZeppelinConfiguration.create();
@@ -90,10 +81,11 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
       LOG.error("Error in PersonalizeActionsIT startUp::", e);
     }
     ZeppelinITUtils.restartZeppelin();
+    driver = WebDriverManager.getWebDriver();
   }
 
-  @AfterAll
-  public static void tearDown() throws IOException {
+  @AfterClass
+  public static void tearDown() {
     try {
       if (!StringUtils.isBlank(shiroPath)) {
         File file = new File(shiroPath);
@@ -107,6 +99,7 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
       LOG.error("Error in PersonalizeActionsIT tearDown::", e);
     }
     ZeppelinITUtils.restartZeppelin();
+    driver.quit();
   }
 
   private void setParagraphText(String text) {
@@ -116,7 +109,7 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
   }
 
   @Test
-  void testSimpleAction() throws Exception {
+  public void testSimpleAction() throws Exception {
     try {
       // step 1 : (admin) create a new note, run a paragraph and turn on personalized mode
       AuthenticationIT authenticationIT = new AuthenticationIT();
@@ -124,20 +117,17 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
       authenticationIT.authenticationUser("admin", "password1");
       By locator = By.xpath("//div[contains(@class, \"col-md-4\")]/div/h5/a[contains(.,'Create new" +
           " note')]");
-      WebDriverWait wait =
-          new WebDriverWait(manager.getWebDriver(), Duration.ofSeconds(MAX_BROWSER_TIMEOUT_SEC));
+      WebDriverWait wait = new WebDriverWait(driver, MAX_BROWSER_TIMEOUT_SEC);
       WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
       if (element.isDisplayed()) {
         createNewNote();
       }
-      String noteId = manager.getWebDriver().getCurrentUrl()
-          .substring(manager.getWebDriver().getCurrentUrl().lastIndexOf("/") + 1);
+      String noteId = driver.getCurrentUrl().substring(driver.getCurrentUrl().lastIndexOf("/") + 1);
       waitForParagraph(1, "READY");
       personalizeActionsIT.setParagraphText("Before");
-      assertEquals("Before", manager.getWebDriver()
-          .findElement(
-              By.xpath(getParagraphXPath(1) + "//div[contains(@class, 'markdown-body')]"))
-          .getText());
+      collector.checkThat("The output field paragraph contains",
+          driver.findElement(By.xpath(getParagraphXPath(1) + "//div[contains(@class, 'markdown-body')]")).getText(),
+          CoreMatchers.equalTo("Before"));
       pollingWait(By.xpath("//*[@id='actionbar']" +
           "//button[contains(@uib-tooltip, 'Switch to personal mode')]"), MAX_BROWSER_TIMEOUT_SEC).click();
       clickAndWait(By.xpath("//div[@class='modal-dialog'][contains(.,'Do you want to personalize your analysis?')" +
@@ -147,22 +137,21 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
       // step 2 : (user1) make sure it is on personalized mode and 'Before' in result of paragraph
       authenticationIT.authenticationUser("user1", "password2");
       locator = By.xpath("//*[@id='notebook-names']//a[contains(@href, '" + noteId + "')]");
-      wait = new WebDriverWait(manager.getWebDriver(), Duration.ofSeconds(MAX_BROWSER_TIMEOUT_SEC));
+      wait = new WebDriverWait(driver, MAX_BROWSER_TIMEOUT_SEC);
       element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
       if (element.isDisplayed()) {
         pollingWait(By.xpath("//*[@id='notebook-names']//a[contains(@href, '" + noteId + "')]"),
             MAX_BROWSER_TIMEOUT_SEC).click();
       }
-      assertEquals("Switch to personal mode (owner can change)",
-          manager.getWebDriver().findElement(By.xpath("//*[@id='actionbar']" +
-              "//button[contains(@class, 'btn btn-default btn-xs ng-scope ng-hide')]"))
-              .getAttribute("uib-tooltip"));
+      collector.checkThat("The personalized mode enables",
+          driver.findElement(By.xpath("//*[@id='actionbar']" +
+              "//button[contains(@class, 'btn btn-default btn-xs ng-scope ng-hide')]")).getAttribute("uib-tooltip"),
+          CoreMatchers.equalTo("Switch to personal mode (owner can change)"));
       waitForParagraph(1, "READY");
       runParagraph(1);
-      assertEquals("Before", manager.getWebDriver()
-          .findElement(
-              By.xpath(getParagraphXPath(1) + "//div[contains(@class, 'markdown-body')]"))
-          .getText());
+      collector.checkThat("The output field paragraph contains",
+          driver.findElement(By.xpath(getParagraphXPath(1) + "//div[contains(@class, 'markdown-body')]")).getText(),
+          CoreMatchers.equalTo("Before"));
       authenticationIT.logoutUser("user1");
 
       // step 3 : (admin) change paragraph contents to 'After' and check result of paragraph
@@ -174,10 +163,9 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
       }
       waitForParagraph(1, "FINISHED");
       personalizeActionsIT.setParagraphText("After");
-      assertEquals("After", manager.getWebDriver()
-          .findElement(
-              By.xpath(getParagraphXPath(1) + "//div[contains(@class, 'markdown-body')]"))
-          .getText());
+      collector.checkThat("The output field paragraph contains",
+          driver.findElement(By.xpath(getParagraphXPath(1) + "//div[contains(@class, 'markdown-body')]")).getText(),
+          CoreMatchers.equalTo("After"));
       authenticationIT.logoutUser("admin");
 
       // step 4 : (user1) check whether result is 'Before' or not
@@ -187,10 +175,9 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
       if (element.isDisplayed()) {
         pollingWait(By.xpath("//*[@id='notebook-names']//a[contains(@href, '" + noteId + "')]"), MAX_BROWSER_TIMEOUT_SEC).click();
       }
-      assertEquals("Before", manager.getWebDriver()
-          .findElement(
-              By.xpath(getParagraphXPath(1) + "//div[contains(@class, 'markdown-body')]"))
-          .getText());
+      collector.checkThat("The output field paragraph contains",
+          driver.findElement(By.xpath(getParagraphXPath(1) + "//div[contains(@class, 'markdown-body')]")).getText(),
+          CoreMatchers.equalTo("Before"));
       authenticationIT.logoutUser("user1");
     } catch (Exception e) {
       handleException("Exception in PersonalizeActionsIT while testSimpleAction ", e);
@@ -198,21 +185,19 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
   }
 
   @Test
-  void testGraphAction() throws Exception {
+  public void testGraphAction() throws Exception {
     try {
       // step 1 : (admin) create a new note, run a paragraph, change active graph to 'Bar chart', turn on personalized mode
       AuthenticationIT authenticationIT = new AuthenticationIT();
       authenticationIT.authenticationUser("admin", "password1");
       By locator = By.xpath("//div[contains(@class, \"col-md-4\")]/div/h5/a[contains(.,'Create new" +
           " note')]");
-      WebDriverWait wait =
-          new WebDriverWait(manager.getWebDriver(), Duration.ofSeconds(MAX_BROWSER_TIMEOUT_SEC));
+      WebDriverWait wait = new WebDriverWait(driver, MAX_BROWSER_TIMEOUT_SEC);
       WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
       if (element.isDisplayed()) {
         createNewNote();
       }
-      String noteId = manager.getWebDriver().getCurrentUrl()
-          .substring(manager.getWebDriver().getCurrentUrl().lastIndexOf("/") + 1);
+      String noteId = driver.getCurrentUrl().substring(driver.getCurrentUrl().lastIndexOf("/") + 1);
       setTextOfParagraph(1, "%python print(\"%table " +
               "name\\\\tsize\\\\n" +
               "sun\\\\t100\\\\n" +
@@ -223,8 +208,8 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
         waitForParagraph(1, "FINISHED");
       } catch (TimeoutException e) {
         waitForParagraph(1, "ERROR");
-        fail(
-            "Exception in PersonalizeActionsIT while testGraphAction, status of 1st Spark Paragraph ");
+        collector.checkThat("Exception in PersonalizeActionsIT while testGraphAction, status of 1st Spark Paragraph ",
+            "ERROR", CoreMatchers.equalTo("FINISHED"));
       }
 
       pollingWait(By.xpath("//*[@id='actionbar']" +
@@ -234,13 +219,13 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
 
       pollingWait(By.xpath(getParagraphXPath(1) +
           "//button[contains(@uib-tooltip, 'Bar Chart')]"), MAX_BROWSER_TIMEOUT_SEC).click();
-      assertEquals("fa fa-bar-chart",
-          manager.getWebDriver().findElement(By.xpath(getParagraphXPath(1)
-              + "//button[contains(@class," +
-              "'btn btn-default btn-sm ng-binding ng-scope active')]//i")).getAttribute("class"));
+      collector.checkThat("The output of graph mode is changed",
+          driver.findElement(By.xpath(getParagraphXPath(1) + "//button[contains(@class," +
+              "'btn btn-default btn-sm ng-binding ng-scope active')]//i")).getAttribute("class"),
+          CoreMatchers.equalTo("fa fa-bar-chart"));
 
       authenticationIT.logoutUser("admin");
-      manager.getWebDriver().navigate().refresh();
+      driver.navigate().refresh();
 
       // step 2 : (user1) make sure it is on personalized mode and active graph is 'Bar chart',
       // try to change active graph to 'Table' and then check result
@@ -251,22 +236,24 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
         pollingWait(By.xpath("//*[@id='notebook-names']//a[contains(@href, '" + noteId + "')]"),
             MAX_BROWSER_TIMEOUT_SEC).click();
       }
-      assertEquals("Switch to personal mode (owner can change)",
-          manager.getWebDriver().findElement(By.xpath("//*[@id='actionbar']" +
-              "//button[contains(@class, 'btn btn-default btn-xs ng-scope ng-hide')]"))
-              .getAttribute("uib-tooltip"));
-      assertEquals("fa fa-bar-chart",
-          manager.getWebDriver().findElement(By.xpath(getParagraphXPath(1)
-              + "//button[contains(@class," +
-              "'btn btn-default btn-sm ng-binding ng-scope active')]//i")).getAttribute("class"));
+      collector.checkThat("The personalized mode enables",
+          driver.findElement(By.xpath("//*[@id='actionbar']" +
+              "//button[contains(@class, 'btn btn-default btn-xs ng-scope ng-hide')]")).getAttribute("uib-tooltip"),
+          CoreMatchers.equalTo("Switch to personal mode (owner can change)"));
+
+      collector.checkThat("Make sure the output of graph mode is",
+          driver.findElement(By.xpath(getParagraphXPath(1) + "//button[contains(@class," +
+              "'btn btn-default btn-sm ng-binding ng-scope active')]//i")).getAttribute("class"),
+          CoreMatchers.equalTo("fa fa-bar-chart"));
 
       pollingWait(By.xpath(getParagraphXPath(1) +
           "//button[contains(@uib-tooltip, 'Table')]"), MAX_BROWSER_TIMEOUT_SEC).click();
-      assertEquals("fa fa-table", manager.getWebDriver().findElement(By.xpath(getParagraphXPath(1)
-          + "//button[contains(@class," +
-          "'btn btn-default btn-sm ng-binding ng-scope active')]//i")).getAttribute("class"));
+      collector.checkThat("Change to table",
+          driver.findElement(By.xpath(getParagraphXPath(1) + "//button[contains(@class," +
+              "'btn btn-default btn-sm ng-binding ng-scope active')]//i")).getAttribute("class"),
+          CoreMatchers.equalTo("fa fa-table"));
       authenticationIT.logoutUser("user1");
-      manager.getWebDriver().navigate().refresh();
+      driver.navigate().refresh();
 
       // step 3: (admin) Admin view is still table because of it's personalized!
       authenticationIT.authenticationUser("admin", "password1");
@@ -276,10 +263,11 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
         pollingWait(By.xpath("//*[@id='notebook-names']//a[contains(@href, '" + noteId + "')]"),
                 MAX_BROWSER_TIMEOUT_SEC).click();
       }
-      assertEquals("fa fa-bar-chart",
-          manager.getWebDriver().findElement(By.xpath(getParagraphXPath(1)
-              + "//button[contains(@class," +
-              "'btn btn-default btn-sm ng-binding ng-scope active')]//i")).getAttribute("class"));
+
+      collector.checkThat("Make sure the output of graph mode is",
+              driver.findElement(By.xpath(getParagraphXPath(1) + "//button[contains(@class," +
+                      "'btn btn-default btn-sm ng-binding ng-scope active')]//i")).getAttribute("class"),
+              CoreMatchers.equalTo("fa fa-bar-chart"));
 
       authenticationIT.logoutUser("admin");
     } catch (Exception e) {
@@ -288,32 +276,33 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
   }
 
   @Test
-  void testDynamicFormAction() throws Exception {
+  public void testDynamicFormAction() throws Exception {
     try {
       // step 1 : (admin) login, create a new note, run a paragraph with data of spark tutorial, logout.
       AuthenticationIT authenticationIT = new AuthenticationIT();
       authenticationIT.authenticationUser("admin", "password1");
       By locator = By.xpath("//div[contains(@class, \"col-md-4\")]/div/h5/a[contains(.,'Create new" +
           " note')]");
-      WebDriverWait wait =
-          new WebDriverWait(manager.getWebDriver(), Duration.ofSeconds(MAX_BROWSER_TIMEOUT_SEC));
+      WebDriverWait wait = new WebDriverWait(driver, MAX_BROWSER_TIMEOUT_SEC);
       WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
       if (element.isDisplayed()) {
         createNewNote();
       }
-      String noteId = manager.getWebDriver().getCurrentUrl()
-          .substring(manager.getWebDriver().getCurrentUrl().lastIndexOf("/") + 1);
+      String noteId = driver.getCurrentUrl().substring(driver.getCurrentUrl().lastIndexOf("/") + 1);
       setTextOfParagraph(1, "%spark println(\"Status: \"+z.textbox(\"name\", \"Before\")) ");
       runParagraph(1);
       try {
         waitForParagraph(1, "FINISHED");
       } catch (TimeoutException e) {
         waitForParagraph(1, "ERROR");
-        fail(
-            "Exception in PersonalizeActionsIT while testDynamicFormAction, status of 1st Spark Paragraph");
+        collector.checkThat("Exception in PersonalizeActionsIT while testDynamicFormAction, status of 1st Spark Paragraph ",
+            "ERROR", CoreMatchers.equalTo("FINISHED"));
       }
-      assertEquals("Before", manager.getWebDriver().findElement(By.xpath(getParagraphXPath(1) +
-          "//input[contains(@name, 'name')]")).getAttribute("value"));
+
+      collector.checkThat("The output of graph mode is changed",
+          driver.findElement(By.xpath(getParagraphXPath(1) +
+              "//input[contains(@name, 'name')]")).getAttribute("value"),
+          CoreMatchers.equalTo("Before"));
 
       pollingWait(By.xpath("//*[@id='actionbar']" +
           "//button[contains(@uib-tooltip, 'Switch to personal mode')]"), MAX_BROWSER_TIMEOUT_SEC).click();
@@ -330,13 +319,15 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
         pollingWait(By.xpath("//*[@id='notebook-names']//a[contains(@href, '" + noteId + "')]"),
             MAX_BROWSER_TIMEOUT_SEC).click();
       }
-      assertEquals("Switch to personal mode (owner can change)",
-          manager.getWebDriver().findElement(By.xpath("//*[@id='actionbar']" +
-              "//button[contains(@class, 'btn btn-default btn-xs ng-scope ng-hide')]"))
-              .getAttribute("uib-tooltip"));
+      collector.checkThat("The personalized mode enables",
+          driver.findElement(By.xpath("//*[@id='actionbar']" +
+              "//button[contains(@class, 'btn btn-default btn-xs ng-scope ng-hide')]")).getAttribute("uib-tooltip"),
+          CoreMatchers.equalTo("Switch to personal mode (owner can change)"));
 
-      assertEquals("Before", manager.getWebDriver().findElement(By.xpath(getParagraphXPath(1) +
-          "//input[contains(@name, 'name')]")).getAttribute("value"));
+      collector.checkThat("The output of graph mode is changed",
+          driver.findElement(By.xpath(getParagraphXPath(1) +
+              "//input[contains(@name, 'name')]")).getAttribute("value"),
+          CoreMatchers.equalTo("Before"));
 
       pollingWait(By.xpath(getParagraphXPath(1) +
           "//input[contains(@name, 'name')]"), MAX_BROWSER_TIMEOUT_SEC).clear();
@@ -348,14 +339,13 @@ public class PersonalizeActionsIT extends AbstractZeppelinIT {
         waitForParagraph(1, "FINISHED");
       } catch (TimeoutException e) {
         waitForParagraph(1, "ERROR");
-        fail(
-            "Exception in PersonalizeActionsIT while testDynamicFormAction, status of 1st Spark Paragraph ");
+        collector.checkThat("Exception in PersonalizeActionsIT while testDynamicFormAction, status of 1st Spark Paragraph ",
+            "ERROR", CoreMatchers.equalTo("FINISHED"));
       }
 
-      assertEquals("Status: Before", manager.getWebDriver()
-          .findElement(By
-              .xpath(getParagraphXPath(1) + "//div[contains(@class, 'text plainTextContent')]"))
-          .getText());
+      collector.checkThat("The output of graph mode is changed",
+          driver.findElement(By.xpath(getParagraphXPath(1) + "//div[contains(@class, 'text plainTextContent')]")).getText(),
+          CoreMatchers.equalTo("Status: Before"));
       authenticationIT.logoutUser("user1");
 
     } catch (Exception e) {

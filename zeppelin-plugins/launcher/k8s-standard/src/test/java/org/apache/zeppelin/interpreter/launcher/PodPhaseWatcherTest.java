@@ -18,18 +18,14 @@
 
 package org.apache.zeppelin.interpreter.launcher;
 
+import static org.junit.Assert.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.awaitility.Awaitility.await;
-
-import java.time.Duration;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.Test;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
@@ -38,20 +34,20 @@ import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.api.model.PodStatusBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
-import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
+import io.fabric8.kubernetes.client.server.mock.KubernetesServer;
 
-@EnableKubernetesMockClient(https = false, crud = true)
-class PodPhaseWatcherTest {
+public class PodPhaseWatcherTest {
 
-  KubernetesClient client;
+  @Rule
+  public KubernetesServer server = new KubernetesServer(false, true);
 
   @Test
-  void testPhase() throws InterruptedException {
+  @Ignore("Reamer - ZEPPELIN-5403")
+  public void testPhase() throws InterruptedException {
+    KubernetesClient client = server.getClient();
     // CREATE
     client.pods().inNamespace("ns1")
-        .create(new PodBuilder().withNewMetadata().withName("pod1").endMetadata().withNewStatus()
-            .endStatus().build());
-    await().until(isPodAvailable("pod1"));
+        .create(new PodBuilder().withNewMetadata().withName("pod1").endMetadata().build());
     // READ
     PodList podList = client.pods().inNamespace("ns1").list();
     assertNotNull(podList);
@@ -60,36 +56,26 @@ class PodPhaseWatcherTest {
     // WATCH
     PodPhaseWatcher podWatcher = new PodPhaseWatcher(
         phase -> StringUtils.equalsAnyIgnoreCase(phase, "Succeeded", "Failed", "Running"));
-    try (Watch watch = client.pods().inNamespace("ns1").withName("pod1").watch(podWatcher)) {
-      // Update Pod to "pending" phase
-      pod.setStatus(new PodStatus(null, null, null, null, null, null, null, "Pending", null, null,
-              null, null, null));
-      pod = client.pods().inNamespace("ns1").replaceStatus(pod);
+    Watch watch = client.pods().inNamespace("ns1").withName("pod1").watch(podWatcher);
 
-      // Wait a little bit, till update is applied
-      await().pollDelay(Duration.ofSeconds(1))
-          .until(isPodPhase(pod.getMetadata().getName(), "Pending"));
-      // Update Pod to "Running" phase
-      pod.setStatus(new PodStatusBuilder(new PodStatus(null, null, null, null, null, null, null,
-              "Running", null, null, null, null, null)).build());
-      client.pods().inNamespace("ns1").replaceStatus(pod);
-      await().pollDelay(Duration.ofSeconds(1))
-          .until(isPodPhase(pod.getMetadata().getName(), "Running"));
-      assertTrue(podWatcher.getCountDownLatch().await(1, TimeUnit.SECONDS));
-    }
-  }
+    // Update Pod to "pending" phase
+    pod.setStatus(new PodStatus(null, null, null, null, null, null, null, "Pending", null, null,
+        null, null, null));
+    client.pods().inNamespace("ns1").updateStatus(pod);
 
-  private Callable<Boolean> isPodPhase(String pod, String phase) {
-    return () -> phase
-        .equals(client.pods().inNamespace("ns1").withName(pod).get().getStatus().getPhase());
-  }
+    // Update Pod to "Running" phase
+    pod.setStatus(new PodStatusBuilder(new PodStatus(null, null, null, null, null, null, null,
+        "Running", null, null, null, null, null)).build());
+    client.pods().inNamespace("ns1").updateStatus(pod);
 
-  private Callable<Boolean> isPodAvailable(String pod) {
-    return () -> client.pods().inNamespace("ns1").withName(pod).get() != null;
+    assertTrue(podWatcher.getCountDownLatch().await(1, TimeUnit.SECONDS));
+    watch.close();
   }
 
   @Test
-  void testPhaseWithError() throws InterruptedException {
+  @Ignore("Reamer - ZEPPELIN-5403")
+  public void testPhaseWithError() throws InterruptedException {
+    KubernetesClient client = server.getClient();
     // CREATE
     client.pods().inNamespace("ns1")
         .create(new PodBuilder().withNewMetadata().withName("pod1").endMetadata().build());

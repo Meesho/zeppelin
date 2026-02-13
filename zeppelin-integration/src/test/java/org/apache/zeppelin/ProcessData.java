@@ -37,7 +37,7 @@ public class ProcessData {
     PROCESS_DATA_OBJECT
   }
 
-  private final static Logger LOG = LoggerFactory.getLogger(ProcessData.class);
+  public final static Logger LOG = LoggerFactory.getLogger(ProcessData.class);
 
   private Process checked_process;
   private boolean printToConsole = false;
@@ -150,7 +150,6 @@ public class ProcessData {
     return this.errorStream;
   }
 
-  @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
     result.append(String.format("[OUTPUT STREAM]\n%s\n", this.outPutStream));

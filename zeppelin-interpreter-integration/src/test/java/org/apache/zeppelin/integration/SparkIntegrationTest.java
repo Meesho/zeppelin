@@ -17,7 +17,6 @@
 
 package org.apache.zeppelin.integration;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.yarn.api.protocolrecords.GetApplicationsRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.GetApplicationsResponse;
@@ -38,24 +37,24 @@ import org.apache.zeppelin.interpreter.InterpreterSetting;
 import org.apache.zeppelin.interpreter.InterpreterSettingManager;
 import org.apache.zeppelin.interpreter.integration.DownloadUtils;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+
 
 public abstract class SparkIntegrationTest {
   private static Logger LOGGER = LoggerFactory.getLogger(SparkIntegrationTest.class);
@@ -69,7 +68,7 @@ public abstract class SparkIntegrationTest {
   private String hadoopVersion;
   private String sparkHome;
 
-  public void prepareSpark(String sparkVersion, String hadoopVersion) {
+  public SparkIntegrationTest(String sparkVersion, String hadoopVersion) {
     LOGGER.info("Testing Spark Version: " + sparkVersion);
     LOGGER.info("Testing Hadoop Version: " + hadoopVersion);
     this.sparkVersion = sparkVersion;
@@ -77,7 +76,7 @@ public abstract class SparkIntegrationTest {
     this.sparkHome = DownloadUtils.downloadSpark(sparkVersion, hadoopVersion);
   }
 
-  @BeforeAll
+  @BeforeClass
   public static void setUp() throws IOException {
     hadoopCluster = new MiniHadoopCluster();
     hadoopCluster.start();
@@ -88,7 +87,7 @@ public abstract class SparkIntegrationTest {
     interpreterSettingManager = zeppelin.getInterpreterSettingManager();
   }
 
-  @AfterAll
+  @AfterClass
   public static void tearDown() throws IOException {
     if (zeppelin != null) {
       zeppelin.stop();
@@ -99,32 +98,7 @@ public abstract class SparkIntegrationTest {
   }
 
   protected void setUpSparkInterpreterSetting(InterpreterSetting interpreterSetting) {
-    if (isSpark3()) {
-      // spark3 doesn't support yarn-client and yarn-cluster anymore, use
-      // spark.master and spark.submit.deployMode instead
-      String sparkMaster = interpreterSetting.getJavaProperties().getProperty("spark.master");
-      if (sparkMaster.equals("yarn-client")) {
-        interpreterSetting.setProperty("spark.master", "yarn");
-        interpreterSetting.setProperty("spark.submit.deployMode", "client");
-      } else if (sparkMaster.equals("yarn-cluster")){
-        interpreterSetting.setProperty("spark.master", "yarn");
-        interpreterSetting.setProperty("spark.submit.deployMode", "cluster");
-      } else if (sparkMaster.startsWith("local")) {
-        interpreterSetting.setProperty("spark.submit.deployMode", "client");
-      }
-    }
-  }
-
-  /**
-   * Configures ivy to download jar libraries only from remote.
-   *
-   * @param interpreterSetting
-   * @throws IOException
-   */
-  private void setupIvySettings(InterpreterSetting interpreterSetting) throws IOException {
-    File ivysettings = new File(zeppelin.getZeppelinConfDir(), "ivysettings.xml");
-    FileUtils.copyToFile(SparkIntegrationTest.class.getResourceAsStream("/ivysettings.xml"), ivysettings);
-    interpreterSetting.setProperty("spark.jars.ivySettings", ivysettings.getAbsolutePath());
+    // sub class can customize spark interpreter setting.
   }
 
   private boolean isHadoopVersionMatch() {
@@ -136,7 +110,7 @@ public abstract class SparkIntegrationTest {
   private void testInterpreterBasics() throws IOException, InterpreterException, XmlPullParserException {
     // add jars & packages for testing
     InterpreterSetting sparkInterpreterSetting = interpreterSettingManager.getInterpreterSettingByName("spark");
-    sparkInterpreterSetting.setProperty("spark.jars.packages", "com.maxmind.geoip2:geoip2:2.16.1");
+    sparkInterpreterSetting.setProperty("spark.jars.packages", "com.maxmind.geoip2:geoip2:2.5.0");
     sparkInterpreterSetting.setProperty("SPARK_PRINT_LAUNCH_COMMAND", "true");
     sparkInterpreterSetting.setProperty("zeppelin.python.gatewayserver_address", "127.0.0.1");
 
@@ -149,50 +123,54 @@ public abstract class SparkIntegrationTest {
 
     InterpreterContext context = new InterpreterContext.Builder().setNoteId("note1").setParagraphId("paragraph_1").build();
     InterpreterResult interpreterResult = sparkInterpreter.interpret("sc.version", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
     String detectedSparkVersion = interpreterResult.message().get(0).getData();
-    assertTrue(detectedSparkVersion.contains(this.sparkVersion), detectedSparkVersion + " doesn't contain " + this.sparkVersion);
+    assertTrue(detectedSparkVersion + " doesn't contain " + this.sparkVersion, detectedSparkVersion.contains(this.sparkVersion));
     interpreterResult = sparkInterpreter.interpret("sc.range(1,10).sum()", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
-    assertTrue(interpreterResult.message().get(0).getData().contains("45"), interpreterResult.toString());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
+    assertTrue(interpreterResult.toString(), interpreterResult.message().get(0).getData().contains("45"));
 
     interpreterResult = sparkInterpreter.interpret("sc.getConf.get(\"spark.user.name\")", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
-    assertTrue(interpreterResult.message().get(0).getData().contains("user1"), interpreterResult.toString());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
+    assertTrue(interpreterResult.toString(), interpreterResult.message().get(0).getData().contains("user1"));
 
     // test jars & packages can be loaded correctly
     interpreterResult = sparkInterpreter.interpret("import org.apache.zeppelin.interpreter.integration.DummyClass\n" +
             "import com.maxmind.geoip2._", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
 
     // test PySparkInterpreter
     Interpreter pySparkInterpreter = interpreterFactory.getInterpreter("spark.pyspark", new ExecutionContext("user1", "note1", "test"));
     interpreterResult = pySparkInterpreter.interpret("sqlContext.createDataFrame([(1,'a'),(2,'b')], ['id','name']).registerTempTable('test')", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
 
     // test IPySparkInterpreter
     Interpreter ipySparkInterpreter = interpreterFactory.getInterpreter("spark.ipyspark", new ExecutionContext("user1", "note1", "test"));
     interpreterResult = ipySparkInterpreter.interpret("sqlContext.table('test').show()", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
 
     // test SparkSQLInterpreter
     Interpreter sqlInterpreter = interpreterFactory.getInterpreter("spark.sql", new ExecutionContext("user1", "note1", "test"));
     interpreterResult = sqlInterpreter.interpret("select count(1) as c from test", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
-    assertEquals(InterpreterResult.Type.TABLE, interpreterResult.message().get(0).getType(), interpreterResult.toString());
-    assertEquals("c\n2\n", interpreterResult.message().get(0).getData(), interpreterResult.toString());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Type.TABLE, interpreterResult.message().get(0).getType());
+    assertEquals(interpreterResult.toString(), "c\n2\n", interpreterResult.message().get(0).getData());
 
     // test SparkRInterpreter
     Interpreter sparkrInterpreter = interpreterFactory.getInterpreter("spark.r", new ExecutionContext("user1", "note1", "test"));
-    interpreterResult = sparkrInterpreter.interpret("df <- as.DataFrame(faithful)\nhead(df)", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
-    assertEquals(InterpreterResult.Type.TEXT, interpreterResult.message().get(0).getType(), interpreterResult.toString());
-    assertTrue( interpreterResult.message().get(0).getData().contains("eruptions waiting"), interpreterResult.toString());
+    if (isSpark2() || isSpark3()) {
+      interpreterResult = sparkrInterpreter.interpret("df <- as.DataFrame(faithful)\nhead(df)", context);
+    } else {
+      interpreterResult = sparkrInterpreter.interpret("df <- createDataFrame(sqlContext, faithful)\nhead(df)", context);
+    }
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Type.TEXT, interpreterResult.message().get(0).getType());
+    assertTrue(interpreterResult.toString(), interpreterResult.message().get(0).getData().contains("eruptions waiting"));
   }
 
   @Test
   public void testLocalMode() throws IOException, YarnException, InterpreterException, XmlPullParserException {
-    assumeTrue(isHadoopVersionMatch(),"Hadoop version mismatch, skip test");
+    assumeTrue("Hadoop version mismatch, skip test", isHadoopVersionMatch());
 
     InterpreterSetting sparkInterpreterSetting = interpreterSettingManager.getInterpreterSettingByName("spark");
     sparkInterpreterSetting.setProperty("spark.master", "local[*]");
@@ -206,7 +184,6 @@ public abstract class SparkIntegrationTest {
 
     try {
       setUpSparkInterpreterSetting(sparkInterpreterSetting);
-      setupIvySettings(sparkInterpreterSetting);
       testInterpreterBasics();
 
       // no yarn application launched
@@ -220,7 +197,7 @@ public abstract class SparkIntegrationTest {
 
   @Test
   public void testYarnClientMode() throws IOException, YarnException, InterruptedException, InterpreterException, XmlPullParserException {
-    assumeTrue(isHadoopVersionMatch(), "Hadoop version mismatch, skip test");
+    assumeTrue("Hadoop version mismatch, skip test", isHadoopVersionMatch());
 
     InterpreterSetting sparkInterpreterSetting = interpreterSettingManager.getInterpreterSettingByName("spark");
     sparkInterpreterSetting.setProperty("spark.master", "yarn-client");
@@ -238,7 +215,6 @@ public abstract class SparkIntegrationTest {
 
     try {
       setUpSparkInterpreterSetting(sparkInterpreterSetting);
-      setupIvySettings(sparkInterpreterSetting);
       testInterpreterBasics();
 
       // 1 yarn application launched
@@ -268,12 +244,12 @@ public abstract class SparkIntegrationTest {
         e.printStackTrace();
       }
     }
-    assertTrue(yarnAppCompleted, "Yarn app is not completed in " + timeout + " milliseconds.");
+    assertTrue("Yarn app is not completed in " + timeout + " milliseconds.", yarnAppCompleted);
   }
 
   @Test
   public void testYarnClusterMode() throws IOException, YarnException, InterruptedException, InterpreterException, XmlPullParserException {
-    assumeTrue(isHadoopVersionMatch(), "Hadoop version mismatch, skip test");
+    assumeTrue("Hadoop version mismatch, skip test", isHadoopVersionMatch());
 
     InterpreterSetting sparkInterpreterSetting = interpreterSettingManager.getInterpreterSettingByName("spark");
     sparkInterpreterSetting.setProperty("spark.master", "yarn-cluster");
@@ -294,7 +270,6 @@ public abstract class SparkIntegrationTest {
     String yarnAppId = null;
     try {
       setUpSparkInterpreterSetting(sparkInterpreterSetting);
-      setupIvySettings(sparkInterpreterSetting);
       testInterpreterBasics();
 
       // 1 yarn application launched
@@ -321,7 +296,7 @@ public abstract class SparkIntegrationTest {
 
   @Test
   public void testSparkSubmit() throws InterpreterException {
-    assumeTrue(isHadoopVersionMatch(), "Hadoop version mismatch, skip test");
+    assumeTrue("Hadoop version mismatch, skip test", isHadoopVersionMatch());
 
     try {
       InterpreterSetting sparkSubmitInterpreterSetting = interpreterSettingManager.getInterpreterSettingByName("spark-submit");
@@ -331,7 +306,7 @@ public abstract class SparkIntegrationTest {
       Interpreter sparkSubmitInterpreter = interpreterFactory.getInterpreter("spark-submit", new ExecutionContext("user1", "note1", "test"));
       InterpreterResult interpreterResult = sparkSubmitInterpreter.interpret("--class org.apache.spark.examples.SparkPi " + sparkHome + "/examples/jars/spark-examples*.jar ", context);
 
-      assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
+      assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
     } finally {
       interpreterSettingManager.close();
     }
@@ -339,7 +314,7 @@ public abstract class SparkIntegrationTest {
 
   @Test
   public void testScopedMode() throws InterpreterException {
-    assumeTrue(isHadoopVersionMatch(), "Hadoop version mismatch, skip test");
+    assumeTrue("Hadoop version mismatch, skip test", isHadoopVersionMatch());
 
     InterpreterSetting sparkInterpreterSetting = interpreterSettingManager.getInterpreterSettingByName("spark");
     try {
@@ -358,16 +333,16 @@ public abstract class SparkIntegrationTest {
 
       InterpreterContext context = new InterpreterContext.Builder().setNoteId("note1").setParagraphId("paragraph_1").build();
       InterpreterResult interpreterResult = sparkInterpreter1.interpret("sc.range(1,10).map(e=>e+1).sum()", context);
-      assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
-      assertTrue(interpreterResult.message().get(0).getData().contains("54"), interpreterResult.toString());
+      assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
+      assertTrue(interpreterResult.toString(), interpreterResult.message().get(0).getData().contains("54"));
 
       Interpreter sparkInterpreter2 = interpreterFactory.getInterpreter("spark.spark", new ExecutionContext("user1", "note2", "test"));
       assertNotEquals(sparkInterpreter1, sparkInterpreter2);
 
       context = new InterpreterContext.Builder().setNoteId("note2").setParagraphId("paragraph_1").build();
       interpreterResult = sparkInterpreter2.interpret("sc.range(1,10).map(e=>e+1).sum()", context);
-      assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
-      assertTrue(interpreterResult.message().get(0).getData().contains("54"), interpreterResult.toString());
+      assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
+      assertTrue(interpreterResult.toString(), interpreterResult.message().get(0).getData().contains("54"));
     } finally {
       interpreterSettingManager.close();
 
@@ -377,7 +352,11 @@ public abstract class SparkIntegrationTest {
       }
     }
   }
-  
+
+  private boolean isSpark2() {
+    return this.sparkVersion.startsWith("2.");
+  }
+
   private boolean isSpark3() {
     return this.sparkVersion.startsWith("3.");
   }
@@ -387,6 +366,6 @@ public abstract class SparkIntegrationTest {
     if (process.waitFor() != 0) {
       throw new RuntimeException("Fail to run command: which python.");
     }
-    return IOUtils.toString(process.getInputStream(), StandardCharsets.UTF_8).trim();
+    return IOUtils.toString(process.getInputStream()).trim();
   }
 }

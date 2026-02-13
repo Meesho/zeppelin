@@ -18,10 +18,6 @@
 
 package org.apache.zeppelin.alluxio;
 
-import alluxio.cli.fs.FileSystemShell;
-import alluxio.conf.Configuration;
-import alluxio.conf.AlluxioConfiguration;
-import alluxio.conf.PropertyKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +29,9 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
-import java.util.stream.Stream;
 
+import alluxio.Configuration;
+import alluxio.shell.AlluxioShell;
 
 import org.apache.zeppelin.completer.CompletionType;
 import org.apache.zeppelin.interpreter.Interpreter;
@@ -53,7 +50,7 @@ public class AlluxioInterpreter extends Interpreter {
   protected static final String ALLUXIO_MASTER_HOSTNAME = "alluxio.master.hostname";
   protected static final String ALLUXIO_MASTER_PORT = "alluxio.master.port";
 
-  private FileSystemShell fs;
+  private AlluxioShell fs;
 
   private int totalCommands = 0;
   private int completedCommands = 0;
@@ -76,29 +73,20 @@ public class AlluxioInterpreter extends Interpreter {
     alluxioMasterPort = property.getProperty(ALLUXIO_MASTER_PORT);
   }
 
-  private Stream<String> filteredProperties(String prefix) {
-    return properties.stringPropertyNames().stream().filter(
-      propertyKey -> propertyKey.startsWith(prefix)
-    );
-  }
-
   @Override
   public void open() {
     logger.info("Starting Alluxio shell to connect to " + alluxioMasterHostname +
         " on port " + alluxioMasterPort);
-    // Setting the extra parameters being set in the interpreter config starting with alluxio
-    filteredProperties("alluxio.").forEach(x -> System.setProperty(x, properties.getProperty(x)));
 
-    System.setProperty(PropertyKey.USER_RPC_RETRY_MAX_DURATION.getName(), "5s");
-
-    AlluxioConfiguration conf = Configuration.global();
-    // Reduce the RPC retry max duration to fall earlier for CLIs
-    fs = new FileSystemShell(conf);
+    System.setProperty(ALLUXIO_MASTER_HOSTNAME, alluxioMasterHostname);
+    System.setProperty(ALLUXIO_MASTER_PORT, alluxioMasterPort);
+    fs = new AlluxioShell(new Configuration());
   }
 
   @Override
   public void close() {
     logger.info("Closing Alluxio shell");
+
     try {
       fs.close();
     } catch (IOException e) {

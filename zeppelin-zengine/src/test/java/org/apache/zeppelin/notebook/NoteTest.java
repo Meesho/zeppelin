@@ -30,63 +30,64 @@ import org.apache.zeppelin.notebook.repo.NotebookRepo;
 import org.apache.zeppelin.scheduler.Scheduler;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.user.Credentials;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.only;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
-
-class NoteTest {
-
+@RunWith(MockitoJUnitRunner.class)
+public class NoteTest {
+  @Mock
   NotebookRepo repo;
+
+  @Mock
   ParagraphJobListener paragraphJobListener;
+
+  @Mock
   Credentials credentials;
+
+  @Mock
   Interpreter interpreter;
+
+  @Mock
   ManagedInterpreterGroup interpreterGroup;
+
+  @Mock
   InterpreterSetting interpreterSetting;
+
+  @Mock
   Scheduler scheduler;
 
   List<NoteEventListener> noteEventListener = new ArrayList<>();
 
+  @Mock
   InterpreterFactory interpreterFactory;
+
+  @Mock
   InterpreterSettingManager interpreterSettingManager;
 
   private AuthenticationInfo anonymous = new AuthenticationInfo("anonymous");
 
-  @BeforeEach
+  @Before
   public void setUp() {
-    repo = mock(NotebookRepo.class);
-    paragraphJobListener = mock(ParagraphJobListener.class);
-    credentials = mock(Credentials.class);
-    interpreter = mock(Interpreter.class);
-    interpreterGroup = mock(ManagedInterpreterGroup.class);
-    interpreterSetting = mock(InterpreterSetting.class);
-    scheduler = mock(Scheduler.class);
-    interpreterFactory = mock(InterpreterFactory.class);
-    interpreterSettingManager = mock(InterpreterSettingManager.class);
+    when(interpreter.getInterpreterGroup()).thenReturn(interpreterGroup);
+    when(interpreterGroup.getInterpreterSetting()).thenReturn(interpreterSetting);
   }
 
   @Test
-  void runNormalTest() throws InterpreterNotFoundException {
+  public void runNormalTest() throws InterpreterNotFoundException {
     when(interpreterFactory.getInterpreter(eq("spark"), any())).thenReturn(interpreter);
     when(interpreter.getScheduler()).thenReturn(scheduler);
-    when(interpreter.getInterpreterGroup()).thenReturn(interpreterGroup);
-    when(interpreterGroup.getInterpreterSetting()).thenReturn(interpreterSetting);
 
     String pText = "%spark sc.version";
     Note note = new Note("test", "test", interpreterFactory, interpreterSettingManager, paragraphJobListener, credentials, noteEventListener);
@@ -100,18 +101,18 @@ class NoteTest {
     verify(scheduler, only()).submit(pCaptor.capture());
     verify(interpreterFactory, times(1)).getInterpreter(eq("spark"), any());
 
-    assertEquals( pText, pCaptor.getValue().getText(), "Paragraph text");
+    assertEquals("Paragraph text", pText, pCaptor.getValue().getText());
   }
 
   @Test
-  void addParagraphWithEmptyReplNameTest() {
+  public void addParagraphWithEmptyReplNameTest() {
     Note note = new Note("test", "", interpreterFactory, interpreterSettingManager, paragraphJobListener, credentials, noteEventListener);
     Paragraph p = note.addNewParagraph(AuthenticationInfo.ANONYMOUS);
     assertNull(p.getText());
   }
 
   @Test
-  void addParagraphWithLastReplNameTest() throws InterpreterNotFoundException {
+  public void addParagraphWithLastReplNameTest() throws InterpreterNotFoundException {
     when(interpreterFactory.getInterpreter(eq("spark"), any())).thenReturn(interpreter);
     Note note = new Note("test", "", interpreterFactory, interpreterSettingManager, paragraphJobListener, credentials, noteEventListener);
     Paragraph p1 = note.addNewParagraph(AuthenticationInfo.ANONYMOUS);
@@ -122,7 +123,7 @@ class NoteTest {
   }
 
   @Test
-  void insertParagraphWithLastReplNameTest() throws InterpreterNotFoundException {
+  public void insertParagraphWithLastReplNameTest() throws InterpreterNotFoundException {
     when(interpreterFactory.getInterpreter(eq("spark"), any())).thenReturn(interpreter);
     Note note = new Note("test", "", interpreterFactory, interpreterSettingManager, paragraphJobListener, credentials, noteEventListener);
     Paragraph p1 = note.addNewParagraph(AuthenticationInfo.ANONYMOUS);
@@ -133,7 +134,7 @@ class NoteTest {
   }
 
   @Test
-  void insertParagraphWithInvalidReplNameTest() throws InterpreterNotFoundException {
+  public void insertParagraphWithInvalidReplNameTest() throws InterpreterNotFoundException {
     when(interpreterFactory.getInterpreter(eq("invalid"), any())).thenReturn(null);
     Note note = new Note("test", "", interpreterFactory, interpreterSettingManager, paragraphJobListener, credentials, noteEventListener);
     Paragraph p1 = note.addNewParagraph(AuthenticationInfo.ANONYMOUS);
@@ -144,14 +145,16 @@ class NoteTest {
   }
 
   @Test
-  void insertParagraphwithUser() {
+  public void insertParagraphwithUser() {
     Note note = new Note("test", "", interpreterFactory, interpreterSettingManager, paragraphJobListener, credentials, noteEventListener);
     Paragraph p = note.insertNewParagraph(note.getParagraphs().size(), AuthenticationInfo.ANONYMOUS);
     assertEquals("anonymous", p.getUser());
   }
 
   @Test
-  void clearAllParagraphOutputTest() throws InterpreterNotFoundException {
+  public void clearAllParagraphOutputTest() throws InterpreterNotFoundException {
+    when(interpreterFactory.getInterpreter(eq("md"), any())).thenReturn(interpreter);
+    when(interpreter.getScheduler()).thenReturn(scheduler);
 
     Note note = new Note("test", "", interpreterFactory, interpreterSettingManager, paragraphJobListener, credentials, noteEventListener);
     Paragraph p1 = note.addNewParagraph(AuthenticationInfo.ANONYMOUS);
@@ -169,7 +172,7 @@ class NoteTest {
 
 
   @Test
-  void personalizedModeReturnDifferentParagraphInstancePerUser() {
+  public void personalizedModeReturnDifferentParagraphInstancePerUser() {
     Note note = new Note("test", "", interpreterFactory, interpreterSettingManager, paragraphJobListener, credentials, noteEventListener);
     String user1 = "user1";
     String user2 = "user2";

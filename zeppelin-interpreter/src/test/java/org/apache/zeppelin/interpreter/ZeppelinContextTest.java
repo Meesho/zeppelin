@@ -17,18 +17,19 @@
 
 package org.apache.zeppelin.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertEquals;
 
-class ZeppelinContextTest {
+
+public class ZeppelinContextTest {
 
   @Test
-  void testHooks() throws InvalidHookException {
+  public void testHooks() throws InvalidHookException {
     InterpreterHookRegistry hookRegistry = new InterpreterHookRegistry();
     TestZeppelinContext z = new TestZeppelinContext(hookRegistry, 10);
     InterpreterContext context = InterpreterContext.builder()
@@ -42,7 +43,11 @@ class ZeppelinContextTest {
 
     // get note name via InterpreterContext
     String note_name = z.getInterpreterContext().getNoteName();
-    assertEquals("note_name_1", note_name);
+    assertEquals(
+            String.format("Actual note name: %s, but expected %s", note_name, "note_name_1"),
+            "note_name_1",
+            note_name
+    );
 
     // register global hook for current interpreter
     z.registerHook(InterpreterHookRegistry.HookType.PRE_EXEC.getName(), "pre_cmd");

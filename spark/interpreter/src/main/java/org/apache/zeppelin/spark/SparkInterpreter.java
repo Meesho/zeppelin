@@ -30,6 +30,7 @@ import org.apache.zeppelin.interpreter.InterpreterException;
 import org.apache.zeppelin.interpreter.InterpreterGroup;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
+import org.apache.zeppelin.kotlin.KotlinInterpreter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +68,7 @@ public class SparkInterpreter extends AbstractInterpreter {
   }
 
   private static AtomicInteger SESSION_NUM = new AtomicInteger(0);
-  private static Class<?> innerInterpreterClazz;
+  private static Class innerInterpreterClazz;
   private AbstractSparkScalaInterpreter innerInterpreter;
   private Map<String, String> innerInterpreterClassMap = new HashMap<>();
   private SparkContext sc;
@@ -88,6 +89,7 @@ public class SparkInterpreter extends AbstractInterpreter {
 
     this.enableSupportedVersionCheck = java.lang.Boolean.parseBoolean(
         properties.getProperty("zeppelin.spark.enableSupportedVersionCheck", "true"));
+    innerInterpreterClassMap.put("2.11", "org.apache.zeppelin.spark.SparkScala211Interpreter");
     innerInterpreterClassMap.put("2.12", "org.apache.zeppelin.spark.SparkScala212Interpreter");
     innerInterpreterClassMap.put("2.13", "org.apache.zeppelin.spark.SparkScala213Interpreter");
   }
@@ -169,8 +171,8 @@ public class SparkInterpreter extends AbstractInterpreter {
             File scalaJarFolder = new File(zeppelinHome + "/interpreter/spark/scala-" + scalaVersion);
             List<URL> urls = new ArrayList<>();
             for (File file : scalaJarFolder.listFiles()) {
-              LOGGER.debug("Add file {} to classpath of spark scala interpreter: {}", file.getAbsolutePath(),
-                scalaJarFolder);
+              LOGGER.debug("Add file " + file.getAbsolutePath() + " to classpath of spark scala interpreter: "
+                      + scalaJarFolder);
               urls.add(file.toURI().toURL());
             }
             scalaInterpreterClassLoader = new URLClassLoader(urls.toArray(new URL[0]),
@@ -230,12 +232,17 @@ public class SparkInterpreter extends AbstractInterpreter {
     return innerInterpreter.getProgress(context);
   }
 
-  @Override
   public ZeppelinContext getZeppelinContext() {
     if (this.innerInterpreter == null) {
       throw new RuntimeException("innerInterpreterContext is null");
     }
     return this.innerInterpreter.getZeppelinContext();
+  }
+
+  public InterpreterResult delegateInterpret(KotlinInterpreter kotlinInterpreter,
+                                             String code,
+                                             InterpreterContext context) throws InterpreterException{
+    return innerInterpreter.delegateInterpret(kotlinInterpreter, code, context);
   }
 
   public SparkContext getSparkContext() {
@@ -269,10 +276,12 @@ public class SparkInterpreter extends AbstractInterpreter {
     } else {
       scalaVersionString = scala.util.Properties.versionString();
     }
-    LOGGER.info("Using Scala: {}", scalaVersionString);
+    LOGGER.info("Using Scala: " + scalaVersionString);
 
     if (StringUtils.isEmpty(scalaVersionString)) {
       throw new InterpreterException("Scala Version is empty");
+    } else if (scalaVersionString.contains("2.11")) {
+      return "2.11";
     } else if (scalaVersionString.contains("2.12")) {
       return "2.12";
     } else if (scalaVersionString.contains("2.13")) {
@@ -282,6 +291,9 @@ public class SparkInterpreter extends AbstractInterpreter {
     }
   }
 
+  public boolean isScala211() {
+    return scalaVersion.equals("2.11");
+  }
 
   public boolean isScala212() {
     return scalaVersion.equals("2.12");

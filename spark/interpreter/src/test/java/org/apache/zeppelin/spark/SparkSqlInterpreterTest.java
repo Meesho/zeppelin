@@ -27,16 +27,16 @@ import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResult.Type;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreterEventClient;
 import org.apache.zeppelin.resource.LocalResourcePool;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class SparkSqlInterpreterTest {
@@ -46,7 +46,7 @@ public class SparkSqlInterpreterTest {
   private static InterpreterContext context;
   private static InterpreterGroup intpGroup;
 
-  @BeforeAll
+  @BeforeClass
   public static void setUp() throws Exception {
     Properties p = new Properties();
     p.setProperty(SparkStringConstants.MASTER_PROP_NAME, "local[4]");
@@ -86,14 +86,14 @@ public class SparkSqlInterpreterTest {
             .build();
   }
 
-  @AfterAll
+  @AfterClass
   public static void tearDown() throws InterpreterException {
     sqlInterpreter.close();
     sparkInterpreter.close();
   }
 
   @Test
-  void test() throws InterpreterException, IOException {
+  public void test() throws InterpreterException, IOException {
     InterpreterResult result = sparkInterpreter.interpret("case class Test(name:String, age:Int)", context);
     assertEquals(InterpreterResult.Code.SUCCESS, result.code());
     result = sparkInterpreter.interpret("val test = sc.parallelize(Seq(Test(\"moon\\t1\", 33), Test(\"jobs\", 51), Test(\"gates\", 51), Test(\"park\\n1\", 34)))", context);
@@ -114,7 +114,7 @@ public class SparkSqlInterpreterTest {
   }
 
   @Test
-  void testStruct() throws InterpreterException {
+  public void testStruct() throws InterpreterException {
     sparkInterpreter.interpret("case class Person(name:String, age:Int)", context);
     sparkInterpreter.interpret("case class People(group:String, person:Person)", context);
     sparkInterpreter.interpret(
@@ -157,7 +157,7 @@ public class SparkSqlInterpreterTest {
   }
 
   @Test
-  void testMaxResults() throws InterpreterException, IOException {
+  public void testMaxResults() throws InterpreterException, IOException {
     sparkInterpreter.interpret("case class P(age:Int)", context);
     sparkInterpreter.interpret(
         "val gr = sc.parallelize(Seq(P(1),P(2),P(3),P(4),P(5),P(6),P(7),P(8),P(9),P(10),P(11)))",
@@ -179,7 +179,7 @@ public class SparkSqlInterpreterTest {
   }
 
   @Test
-  void testSingleRowResult() throws InterpreterException, IOException {
+  public void testSingleRowResult() throws InterpreterException, IOException {
     sparkInterpreter.interpret("case class P(age:Int)", context);
     sparkInterpreter.interpret(
             "val gr = sc.parallelize(Seq(P(1),P(2),P(3),P(4),P(5),P(6),P(7),P(8),P(9),P(10)))",
@@ -205,7 +205,7 @@ public class SparkSqlInterpreterTest {
   }
 
   @Test
-  void testMultipleStatements() throws InterpreterException, IOException {
+  public void testMultipleStatements() throws InterpreterException, IOException {
     sparkInterpreter.interpret("case class P(age:Int)", context);
     sparkInterpreter.interpret(
             "val gr = sc.parallelize(Seq(P(1),P(2),P(3),P(4)))",
@@ -216,39 +216,35 @@ public class SparkSqlInterpreterTest {
     InterpreterResult ret = sqlInterpreter.interpret(
             "select * --comment_1\nfrom gr;select count(1) from gr", context);
     assertEquals(InterpreterResult.Code.SUCCESS, ret.code());
-    assertEquals(2, context.out.toInterpreterResultMessage().size(), context.out.toString());
-    assertEquals(Type.TABLE, context.out.toInterpreterResultMessage().get(0).getType(),
-      context.out.toString());
-    assertEquals(Type.TABLE, context.out.toInterpreterResultMessage().get(1).getType(),
-      context.out.toString());
+    assertEquals(context.out.toString(), 2, context.out.toInterpreterResultMessage().size());
+    assertEquals(context.out.toString(), Type.TABLE, context.out.toInterpreterResultMessage().get(0).getType());
+    assertEquals(context.out.toString(), Type.TABLE, context.out.toInterpreterResultMessage().get(1).getType());
 
     // One correct sql + One invalid sql
     ret = sqlInterpreter.interpret("select * from gr;invalid_sql", context);
     assertEquals(InterpreterResult.Code.ERROR, ret.code());
-    assertEquals(2, context.out.toInterpreterResultMessage().size(), context.out.toString());
-    assertEquals(Type.TABLE, context.out.toInterpreterResultMessage().get(0).getType(),
-      context.out.toString());
-    assertTrue(context.out.toString().contains("mismatched input") ||
-      context.out.toString().contains("Syntax error"), context.out.toString());
+    assertEquals(context.out.toString(), 2, context.out.toInterpreterResultMessage().size());
+    assertEquals(context.out.toString(), Type.TABLE, context.out.toInterpreterResultMessage().get(0).getType());
+    assertTrue(context.out.toString(), context.out.toString().contains("mismatched input") ||
+            context.out.toString().contains("Syntax error"));
 
     // One correct sql + One invalid sql + One valid sql (skipped)
     ret = sqlInterpreter.interpret("select * from gr;invalid_sql; select count(1) from gr", context);
     assertEquals(InterpreterResult.Code.ERROR, ret.code());
-    assertEquals(2, context.out.toInterpreterResultMessage().size(), context.out.toString());
-    assertEquals(Type.TABLE, context.out.toInterpreterResultMessage().get(0).getType(),
-      context.out.toString());
-    assertTrue(context.out.toString().contains("mismatched input") ||
-      context.out.toString().contains("Syntax error"), context.out.toString());
-
+    assertEquals(context.out.toString(), 2, context.out.toInterpreterResultMessage().size());
+    assertEquals(context.out.toString(), Type.TABLE, context.out.toInterpreterResultMessage().get(0).getType());
+    assertTrue(context.out.toString(), context.out.toString().contains("mismatched input") ||
+            context.out.toString().contains("Syntax error"));
+    
     // Two 2 comments
     ret = sqlInterpreter.interpret(
             "--comment_1\n--comment_2", context);
     assertEquals(InterpreterResult.Code.SUCCESS, ret.code());
-    assertEquals(0, context.out.toInterpreterResultMessage().size(), context.out.toString());
+    assertEquals(context.out.toString(), 0, context.out.toInterpreterResultMessage().size());
   }
 
   @Test
-  void testConcurrentSQL() throws InterpreterException, InterruptedException {
+  public void testConcurrentSQL() throws InterpreterException, InterruptedException {
     sparkInterpreter.interpret("spark.udf.register(\"sleep\", (e:Int) => {Thread.sleep(e*1000); e})", context);
 
     Thread thread1 = new Thread() {
@@ -283,15 +279,15 @@ public class SparkSqlInterpreterTest {
     thread1.join();
     thread2.join();
     long end = System.currentTimeMillis();
-    assertTrue(((end - start) / 1000) < 20, "running time must be less than 20 seconds");
+    assertTrue("running time must be less than 20 seconds", ((end - start)/1000) < 20);
 
   }
 
   @Test
-  void testDDL() throws InterpreterException, IOException {
+  public void testDDL() throws InterpreterException, IOException {
     InterpreterContext context = getInterpreterContext();
     InterpreterResult ret = sqlInterpreter.interpret("create table t1(id int, name string)", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, ret.code(), context.out.toString());
+    assertEquals(context.out.toString(), InterpreterResult.Code.SUCCESS, ret.code());
     // spark 1.x will still return DataFrame with non-empty columns.
     // org.apache.spark.sql.DataFrame = [result: string]
     if (!sparkInterpreter.getSparkContext().version().startsWith("1.")) {
@@ -313,5 +309,11 @@ public class SparkSqlInterpreterTest {
     assertEquals(InterpreterResult.Code.ERROR, ret.code());
     assertEquals(1, context.out.toInterpreterResultMessage().size());
     assertEquals(Type.TEXT, context.out.toInterpreterResultMessage().get(0).getType());
+
+    // spark 1.x could not detect the root cause correctly
+    if (!sparkInterpreter.getSparkContext().version().startsWith("1.")) {
+      assertTrue(context.out.toInterpreterResultMessage().get(0).getData().contains("ClassNotFoundException") ||
+              context.out.toInterpreterResultMessage().get(0).getData().contains("Can not load class"));
+    }
   }
 }

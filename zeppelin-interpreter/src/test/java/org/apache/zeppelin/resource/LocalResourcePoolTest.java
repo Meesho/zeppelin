@@ -16,20 +16,20 @@
  */
 package org.apache.zeppelin.resource;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.Test;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unittest for LocalResourcePool
  */
-class LocalResourcePoolTest {
+public class LocalResourcePoolTest {
 
   @Test
-  void testGetPutResourcePool() {
+  public void testGetPutResourcePool() {
 
     LocalResourcePool pool = new LocalResourcePool("pool1");
     assertEquals("pool1", pool.id());

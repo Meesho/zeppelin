@@ -26,29 +26,29 @@ import org.apache.zeppelin.interpreter.InterpreterOutput;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.LazyOpenInterpreter;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreterEventClient;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-class SparkRInterpreterTest {
+public class SparkRInterpreterTest {
 
   private SparkRInterpreter sparkRInterpreter;
   private SparkInterpreter sparkInterpreter;
   private RemoteInterpreterEventClient mockRemoteIntpEventClient = mock(RemoteInterpreterEventClient.class);
 
-  @BeforeEach
+  @Before
   public void setUp() throws InterpreterException {
     Properties properties = new Properties();
     properties.setProperty(SparkStringConstants.MASTER_PROP_NAME, "local");
@@ -73,13 +73,13 @@ class SparkRInterpreterTest {
     sparkRInterpreter.open();
   }
 
-  @AfterEach
+  @After
   public void tearDown() throws InterpreterException {
     sparkInterpreter.close();
   }
 
   @Test
-  void testSparkRInterpreter() throws InterpreterException, InterruptedException {
+  public void testSparkRInterpreter() throws InterpreterException, InterruptedException {
     InterpreterResult result = sparkRInterpreter.interpret("1+1", getInterpreterContext());
     assertEquals(InterpreterResult.Code.SUCCESS, result.code());
     assertTrue(result.message().get(0).getData().contains("2"));
@@ -89,7 +89,7 @@ class SparkRInterpreterTest {
 
     result = sparkRInterpreter.interpret("df <- as.DataFrame(faithful)\nhead(df)", getInterpreterContext());
     assertEquals(InterpreterResult.Code.SUCCESS, result.code());
-    assertTrue(result.message().get(0).getData().contains("eruptions waiting"), result.toString());
+    assertTrue(result.toString(), result.message().get(0).getData().contains("eruptions waiting"));
     // spark job url is sent
     verify(mockRemoteIntpEventClient, atLeastOnce()).onParaInfosReceived(any(Map.class));
 
@@ -143,7 +143,7 @@ class SparkRInterpreterTest {
   }
 
   @Test
-  void testInvalidR() throws InterpreterException {
+  public void testInvalidR() throws InterpreterException {
     tearDown();
 
     Properties properties = new Properties();
@@ -167,7 +167,7 @@ class SparkRInterpreterTest {
       fail("Should fail to open SparkRInterpreter");
     } catch (InterpreterException e) {
       String stacktrace = ExceptionUtils.getStackTrace(e);
-      assertTrue(stacktrace.contains("No such file or directory"), stacktrace);
+      assertTrue(stacktrace, stacktrace.contains("No such file or directory"));
     }
   }
 

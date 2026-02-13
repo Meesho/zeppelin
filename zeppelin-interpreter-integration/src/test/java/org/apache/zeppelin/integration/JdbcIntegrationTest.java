@@ -27,16 +27,15 @@ import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterSetting;
 import org.apache.zeppelin.interpreter.InterpreterSettingManager;
 import org.apache.zeppelin.user.AuthenticationInfo;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class JdbcIntegrationTest {
 
@@ -45,7 +44,7 @@ public class JdbcIntegrationTest {
   private static InterpreterSettingManager interpreterSettingManager;
 
 
-  @BeforeAll
+  @BeforeClass
   public static void setUp() throws IOException {
     zeppelin = new MiniZeppelin();
     zeppelin.start(JdbcIntegrationTest.class);
@@ -53,7 +52,7 @@ public class JdbcIntegrationTest {
     interpreterSettingManager = zeppelin.getInterpreterSettingManager();
   }
 
-  @AfterAll
+  @AfterClass
   public static void tearDown() throws IOException {
     if (zeppelin != null) {
       zeppelin.stop();
@@ -61,7 +60,7 @@ public class JdbcIntegrationTest {
   }
 
   @Test
-  void testMySql() throws InterpreterException, InterruptedException {
+  public void testMySql() throws InterpreterException, InterruptedException {
     InterpreterSetting interpreterSetting = interpreterSettingManager.getInterpreterSettingByName("jdbc");
     interpreterSetting.setProperty("default.driver", "com.mysql.jdbc.Driver");
     interpreterSetting.setProperty("default.url", "jdbc:mysql://localhost:3306/");
@@ -73,7 +72,7 @@ public class JdbcIntegrationTest {
     interpreterSettingManager.restart(interpreterSetting.getId());
     interpreterSetting.waitForReady(60 * 1000);
     Interpreter jdbcInterpreter = interpreterFactory.getInterpreter("jdbc", new ExecutionContext("user1", "note1", "test"));
-    assertNotNull(jdbcInterpreter, "JdbcInterpreter is null");
+    assertNotNull("JdbcInterpreter is null", jdbcInterpreter);
 
     InterpreterContext context = new InterpreterContext.Builder()
             .setNoteId("note1")
@@ -81,11 +80,11 @@ public class JdbcIntegrationTest {
             .setAuthenticationInfo(AuthenticationInfo.ANONYMOUS)
             .build();
     InterpreterResult interpreterResult = jdbcInterpreter.interpret("show databases;", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
 
     context.getLocalProperties().put("saveAs", "table_1");
     interpreterResult = jdbcInterpreter.interpret("SELECT 1 as c1, 2 as c2;", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
     assertEquals(1, interpreterResult.message().size());
     assertEquals(InterpreterResult.Type.TABLE, interpreterResult.message().get(0).getType());
     assertEquals("c1\tc2\n1\t2\n", interpreterResult.message().get(0).getData());
@@ -95,7 +94,7 @@ public class JdbcIntegrationTest {
     pythonInterpreterSetting.setProperty("zeppelin.python.gatewayserver_address", "127.0.0.1");
 
     Interpreter pythonInterpreter = interpreterFactory.getInterpreter("python", new ExecutionContext("user1", "note1", "test"));
-    assertNotNull(pythonInterpreter, "PythonInterpreter is null");
+    assertNotNull("PythonInterpreter is null", pythonInterpreter);
 
     context = new InterpreterContext.Builder()
             .setNoteId("note1")
@@ -103,7 +102,7 @@ public class JdbcIntegrationTest {
             .setAuthenticationInfo(AuthenticationInfo.ANONYMOUS)
             .build();
     interpreterResult = pythonInterpreter.interpret("df=z.getAsDataFrame('table_1')\nz.show(df)", context);
-    assertEquals(InterpreterResult.Code.SUCCESS, interpreterResult.code(), interpreterResult.toString());
+    assertEquals(interpreterResult.toString(), InterpreterResult.Code.SUCCESS, interpreterResult.code());
     assertEquals(1, interpreterResult.message().size());
     assertEquals(InterpreterResult.Type.TABLE, interpreterResult.message().get(0).getType());
     assertEquals("c1\tc2\n1\t2\n", interpreterResult.message().get(0).getData());

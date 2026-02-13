@@ -16,14 +16,14 @@
  */
 package org.apache.zeppelin.rest;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Map;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -32,17 +32,17 @@ import org.apache.zeppelin.service.AuthenticationService;
 import org.apache.zeppelin.service.NoAuthenticationService;
 import org.apache.zeppelin.user.Credentials;
 import org.apache.zeppelin.user.UserCredentials;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 
-class CredentialsRestApiTest {
+public class CredentialsRestApiTest {
   private final Gson gson = new Gson();
 
   private CredentialRestApi credentialRestApi;
   private Credentials credentials;
   private AuthenticationService authenticationService;
 
-  @BeforeEach
+  @Before
   public void setUp() throws IOException {
     credentials = new Credentials();
     authenticationService = new NoAuthenticationService();
@@ -50,7 +50,7 @@ class CredentialsRestApiTest {
   }
 
   @Test
-  void testInvalidRequest() throws IOException {
+  public void testInvalidRequest() throws IOException {
     String jsonInvalidRequestEntityNull =
         "{\"entity\" : null, \"username\" : \"test\", " + "\"password\" : \"testpass\"}";
     String jsonInvalidRequestNameNull =
@@ -85,18 +85,18 @@ class CredentialsRestApiTest {
   }
 
   @Test
-  void testCredentialsAPIs() throws IOException {
+  public void testCredentialsAPIs() throws IOException {
     String requestData1 =
         "{\"entity\" : \"entityname\", \"username\" : \"myuser\", \"password\" " + ": \"mypass\"}";
     String entity = "entityname";
 
     credentialRestApi.putCredentials(requestData1);
-    assertNotNull(testGetUserCredentials(), "CredentialMap should not be null");
+    assertNotNull("CredentialMap should be null", testGetUserCredentials());
 
     credentialRestApi.removeCredentialEntity(entity);
-    assertNull(testGetUserCredentials().get("entity1"), "CredentialMap should be null");
+    assertNull("CredentialMap should be null", testGetUserCredentials().get("entity1"));
 
     credentialRestApi.removeCredentials();
-    assertEquals("{}", testGetUserCredentials().toString(), "Compare CredentialMap");
+    assertEquals("Compare CredentialMap", testGetUserCredentials().toString(), "{}");
   }
 }

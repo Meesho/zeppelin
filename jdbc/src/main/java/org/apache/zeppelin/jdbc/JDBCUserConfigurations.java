@@ -15,7 +15,6 @@
 package org.apache.zeppelin.jdbc;
 
 import org.apache.commons.dbcp2.PoolingDriver;
-import org.apache.zeppelin.user.UsernamePassword;
 
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -23,17 +22,25 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.zeppelin.user.UsernamePassword;
+
 /**
  * UserConfigurations for JDBC impersonation.
  */
 public class JDBCUserConfigurations {
   private final Map<String, Statement> paragraphIdStatementMap;
-  private PoolingDriver poolingDriver;
-  private Properties properties;
-  private Boolean isSuccessful;
+  // dbPrefix --> PoolingDriver
+  private final Map<String, PoolingDriver> poolingDriverMap;
+  // dbPrefix --> Properties
+  private final HashMap<String, Properties> propertiesMap;
+  // dbPrefix --> Boolean
+  private HashMap<String, Boolean> isSuccessful;
 
   public JDBCUserConfigurations() {
     paragraphIdStatementMap = new HashMap<>();
+    poolingDriverMap = new HashMap<>();
+    propertiesMap = new HashMap<>();
+    isSuccessful = new HashMap<>();
   }
 
   public void initStatementMap() throws SQLException {
@@ -44,26 +51,27 @@ public class JDBCUserConfigurations {
   }
 
   public void initConnectionPoolMap() throws SQLException {
-    this.poolingDriver = null;
-    this.isSuccessful = null;
+    poolingDriverMap.clear();
+    isSuccessful.clear();
   }
 
-  public void setProperty(Properties properties) {
-    this.properties = (Properties) properties.clone();
+  public void setPropertyMap(String dbPrefix, Properties properties) {
+    Properties p = (Properties) properties.clone();
+    propertiesMap.put(dbPrefix, p);
   }
 
-  public Properties getProperty() {
-    return this.properties;
+  public Properties getPropertyMap(String key) {
+    return propertiesMap.get(key);
   }
 
-  public void cleanUserProperty() {
-    this.properties.remove("user");
-    this.properties.remove("password");
+  public void cleanUserProperty(String dfPrefix) {
+    propertiesMap.get(dfPrefix).remove("user");
+    propertiesMap.get(dfPrefix).remove("password");
   }
 
-  public void setUserProperty(UsernamePassword usernamePassword) {
-    this.properties.setProperty("user", usernamePassword.getUsername());
-    this.properties.setProperty("password", usernamePassword.getPassword());
+  public void setUserProperty(String dbPrefix, UsernamePassword usernamePassword) {
+    propertiesMap.get(dbPrefix).setProperty("user", usernamePassword.getUsername());
+    propertiesMap.get(dbPrefix).setProperty("password", usernamePassword.getPassword());
   }
 
   public void saveStatement(String paragraphId, Statement statement) throws SQLException {
@@ -78,23 +86,20 @@ public class JDBCUserConfigurations {
     paragraphIdStatementMap.remove(paragraphId);
   }
 
-  public void saveDBDriverPool(PoolingDriver driver) throws SQLException {
-    this.poolingDriver = driver;
-    this.isSuccessful = false;
+  public void saveDBDriverPool(String dbPrefix, PoolingDriver driver) throws SQLException {
+    poolingDriverMap.put(dbPrefix, driver);
+    isSuccessful.put(dbPrefix, false);
+  }
+  public PoolingDriver removeDBDriverPool(String key) throws SQLException {
+    isSuccessful.remove(key);
+    return poolingDriverMap.remove(key);
   }
 
-  public PoolingDriver removeDBDriverPool() throws SQLException {
-    this.isSuccessful = null;
-    PoolingDriver tmp = poolingDriver;
-    this.poolingDriver = null;
-    return tmp;
+  public boolean isConnectionInDBDriverPool(String key) {
+    return poolingDriverMap.containsKey(key);
   }
 
-  public boolean isConnectionInDBDriverPool() {
-    return this.poolingDriver != null;
-  }
-
-  public void setConnectionInDBDriverPoolSuccessful() {
-    this.isSuccessful = true;
+  public void setConnectionInDBDriverPoolSuccessful(String dbPrefix) {
+    isSuccessful.put(dbPrefix, true);
   }
 }

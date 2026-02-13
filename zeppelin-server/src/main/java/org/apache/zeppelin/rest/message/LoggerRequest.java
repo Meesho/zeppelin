@@ -17,12 +17,9 @@
 
 package org.apache.zeppelin.rest.message;
 
-/**
- * LoggerRequest rest api request message.
- */
 public class LoggerRequest {
-  private final String name;
-  private final String level;
+  private String name;
+  private String level;
 
   public LoggerRequest(String name, String level) {
     this.name = name;

@@ -19,35 +19,32 @@ package org.apache.zeppelin.resource;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
-
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * Test for Resource
  */
-class ResourceTest {
+public class ResourceTest {
   @Test
-  void testSerializeDeserialize() throws IOException, ClassNotFoundException {
+  public void testSerializeDeserialize() throws IOException, ClassNotFoundException {
     ByteBuffer buffer = Resource.serializeObject("hello");
     assertEquals("hello", Resource.deserializeObject(buffer));
   }
 
   @Test
-  void testInvokeMethod_shouldAbleToInvokeMethodWithNoParams() {
+  public void testInvokeMethod_shouldAbleToInvokeMethodWithNoParams() {
     Resource r = new Resource(null, new ResourceId("pool1", "name1"), "object");
     assertEquals(6, r.invokeMethod("length"));
     assertEquals(6, r.invokeMethod("length", new Class[]{}, new Object[]{}));
   }
 
   @Test
-  void testInvokeMethod_shouldAbleToInvokeMethodWithTypeInference() throws ClassNotFoundException,
-      NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+  public void testInvokeMethod_shouldAbleToInvokeMethodWithTypeInference() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
     Resource r = new Resource(null, new ResourceId("pool1", "name1"), "object");
     assertEquals("ect", r.invokeMethod("substring", new Object[]{3}));
     assertEquals("obj", r.invokeMethod("substring", new Object[]{0,3}));
@@ -61,21 +58,14 @@ class ResourceTest {
     assertEquals(true, r.invokeMethod("startsWith", new ArrayList<>(Arrays.asList("obj"))));
   }
 
-  @Test
-  void testInvokeMethod_shouldNotAbleToInvokeMethodWithTypeInference()
-      throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
-      IllegalAccessException {
-    assertThrows(ClassNotFoundException.class, () -> {
-      Resource r = new Resource(null, new ResourceId("pool1", "name1"), "object");
-      r.invokeMethod("indexOf", new Object[] { "ct", 3, 4 });
-    });
-
+  @Test(expected = ClassNotFoundException.class)
+  public void testInvokeMethod_shouldNotAbleToInvokeMethodWithTypeInference() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    Resource r = new Resource(null, new ResourceId("pool1", "name1"), "object");
+    r.invokeMethod("indexOf", new Object[]{"ct",3,4});
   }
 
     @Test
-    void testInvokeMethod_shouldAbleToInvokeMethodWithParamClassName()
-        throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
-        IllegalAccessException {
+  public void testInvokeMethod_shouldAbleToInvokeMethodWithParamClassName() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
     Resource r = new Resource(null, new ResourceId("pool1", "name1"), "object");
     assertEquals("ect", r.invokeMethod("substring", new String[]{"int"}, new Object[]{3}));
     assertEquals(true, r.invokeMethod("startsWith", new String[]{"java.lang.String"}, new Object[]{"obj"}));
@@ -85,8 +75,7 @@ class ResourceTest {
   }
 
   @Test
-  void testInvokeMethod_shouldAbleToInvokeMethodWithClass() throws ClassNotFoundException,
-      NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+  public void testInvokeMethod_shouldAbleToInvokeMethodWithClass() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
     Resource r = new Resource(null, new ResourceId("pool1", "name1"), "object");
     assertEquals(true, r.invokeMethod("startsWith", new Class[]{ java.lang.String.class }, new Object[]{"obj"}));
   }

@@ -18,16 +18,16 @@
 
 package org.apache.zeppelin.interpreter.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.Test;
 
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertEquals;
 
-class SqlSplitterTest {
+public class SqlSplitterTest {
 
   @Test
-  void testNormalSql() {
+  public void testNormalSql() {
     SqlSplitter sqlSplitter = new SqlSplitter();
     List<String> sqls = sqlSplitter.splitSql("show tables");
     assertEquals(1, sqls.size());
@@ -63,7 +63,7 @@ class SqlSplitterTest {
   }
 
   @Test
-  void testSingleLineComment() {
+  public void testSingleLineComment() {
     SqlSplitter sqlSplitter = new SqlSplitter();
     List<String> sqls = sqlSplitter.splitSql("show tables;\n--comment_1");
     assertEquals(1, sqls.size());
@@ -122,7 +122,7 @@ class SqlSplitterTest {
   }
 
   @Test
-  void testMultipleLineComment() {
+  public void testMultipleLineComment() {
     SqlSplitter sqlSplitter = new SqlSplitter();
     List<String> sqls = sqlSplitter.splitSql("show tables;\n/*comment_1*/");
     assertEquals(1, sqls.size());
@@ -181,7 +181,7 @@ class SqlSplitterTest {
   }
 
   @Test
-  void testInvalidSql() {
+  public void testInvalidSql() {
     SqlSplitter sqlSplitter = new SqlSplitter();
     List<String> sqls = sqlSplitter.splitSql("select a from table_1 where a=' and b=1");
     assertEquals(1, sqls.size());
@@ -197,7 +197,7 @@ class SqlSplitterTest {
   }
 
   @Test
-  void testComplexSql() {
+  public void testComplexSql() {
     SqlSplitter sqlSplitter = new SqlSplitter();
     String text = "/* ; */\n" +
             "-- /* comment\n" +
@@ -232,7 +232,7 @@ class SqlSplitterTest {
   }
 
   @Test
-  void testCustomSplitter_1() {
+  public void testCustomSplitter_1() {
     SqlSplitter sqlSplitter = new SqlSplitter("//");
     List<String> sqls = sqlSplitter.splitSql("show tables;\n//comment_1");
     assertEquals(1, sqls.size());
@@ -282,7 +282,7 @@ class SqlSplitterTest {
   }
 
   @Test
-  void testCustomSplitter_2() {
+  public void testCustomSplitter_2() {
     SqlSplitter sqlSplitter = new SqlSplitter("#");
     List<String> sqls = sqlSplitter.splitSql("show tables;\n#comment_1");
     assertEquals(1, sqls.size());
@@ -332,7 +332,7 @@ class SqlSplitterTest {
   }
 
   @Test
-  void testQuoteInComment() {
+  public void testQuoteInComment() {
     SqlSplitter sqlSplitter = new SqlSplitter();
     List<String> sqls = sqlSplitter.splitSql("show tables;-- comment_1'\ndescribe table_1");
     assertEquals(2, sqls.size());
@@ -356,7 +356,7 @@ class SqlSplitterTest {
   }
 
   @Test
-  void testCommentAtEnd() {
+  public void testCommentAtEnd() {
     String sql = "\n" +
             "select\n" +
             "  'one'\n" +

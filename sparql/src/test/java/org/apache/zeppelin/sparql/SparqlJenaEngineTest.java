@@ -17,6 +17,9 @@
 
 package org.apache.zeppelin.sparql;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jena.fuseki.Fuseki;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.fuseki.server.DataAccessPointRegistry;
@@ -25,19 +28,18 @@ import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.util.Properties;
 
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResult.Code;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
-class SparqlJenaEngineTest {
+
+public class SparqlJenaEngineTest {
   private static int port;
 
   private static FusekiServer server;
@@ -50,7 +52,7 @@ class SparqlJenaEngineTest {
 
   private static final String DATA_FILE = "data.ttl";
 
-  @BeforeAll
+  @BeforeClass
   public static void setUp() {
     port = Fuseki.choosePort();
 
@@ -69,14 +71,14 @@ class SparqlJenaEngineTest {
     server.start();
   }
 
-  @AfterAll
+  @AfterClass
   public static void tearDown() {
     if (server != null) {
       server.stop();
     }
   }
 
-  @BeforeEach
+  @Before
   public void setUpProperties() {
     properties = new Properties();
     properties.put(SparqlInterpreter.SPARQL_ENGINE_TYPE, ENGINE);
@@ -84,7 +86,7 @@ class SparqlJenaEngineTest {
   }
 
   @Test
-  void testWrongQuery() {
+  public void testWrongQuery() {
     SparqlInterpreter interpreter = new SparqlInterpreter(properties);
     interpreter.open();
 
@@ -93,7 +95,7 @@ class SparqlJenaEngineTest {
   }
 
   @Test
-  void testSuccessfulRawQuery() {
+  public void testSuccessfulRawQuery() {
     properties.put(SparqlInterpreter.SPARQL_REPLACE_URIS, "false");
     properties.put(SparqlInterpreter.SPARQL_REMOVE_DATATYPES, "false");
     SparqlInterpreter interpreter = new SparqlInterpreter(properties);
@@ -126,7 +128,7 @@ class SparqlJenaEngineTest {
   }
 
   @Test
-  void testSuccessfulReplaceRemoveQuery() {
+  public void testSuccessfulReplaceRemoveQuery() {
     properties.put(SparqlInterpreter.SPARQL_REPLACE_URIS, "true");
     properties.put(SparqlInterpreter.SPARQL_REMOVE_DATATYPES, "true");
     SparqlInterpreter interpreter = new SparqlInterpreter(properties);
@@ -159,7 +161,7 @@ class SparqlJenaEngineTest {
   }
 
   @Test
-  void testRemoteEndpoint() {
+  public void testRemoteEndpoint() {
     properties.put(SparqlInterpreter.SPARQL_SERVICE_ENDPOINT, "http://dbpedia.org/sparql");
     SparqlInterpreter interpreter = new SparqlInterpreter(properties);
     interpreter.open();
@@ -176,7 +178,7 @@ class SparqlJenaEngineTest {
   }
 
   @Test
-  void testEndpointMalformed() {
+  public void testEndpointMalformed() {
     properties.put(SparqlInterpreter.SPARQL_SERVICE_ENDPOINT, "tsohlacol");
     SparqlInterpreter interpreter = new SparqlInterpreter(properties);
     interpreter.open();
@@ -187,7 +189,7 @@ class SparqlJenaEngineTest {
   }
 
   @Test
-  void testEndpointNotFound() {
+  public void testEndpointNotFound() {
     properties.put(SparqlInterpreter.SPARQL_SERVICE_ENDPOINT, "http://tsohlacol/");
     SparqlInterpreter interpreter = new SparqlInterpreter(properties);
     interpreter.open();

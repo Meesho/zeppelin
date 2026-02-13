@@ -16,9 +16,16 @@
 
 package org.apache.zeppelin.bigquery;
 
-import com.google.gson.Gson;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Properties;
@@ -26,11 +33,8 @@ import java.util.Properties;
 import org.apache.zeppelin.interpreter.InterpreterContext;
 import org.apache.zeppelin.interpreter.InterpreterGroup;
 import org.apache.zeppelin.interpreter.InterpreterResult;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
-class BigQueryInterpreterTest {
+public class BigQueryInterpreterTest {
   protected static class Constants {
     private String projectId;
     private String oneQuery;
@@ -51,10 +55,12 @@ class BigQueryInterpreterTest {
 
   protected static Constants constants = null;
 
-  @BeforeAll
-  public static void initConstants() {
-    InputStream is = ClassLoader.class.getResourceAsStream("/constants.json");
-    constants = (new Gson()).<Constants> fromJson(new InputStreamReader(is), Constants.class);
+  public BigQueryInterpreterTest()
+      throws JsonSyntaxException, JsonIOException, FileNotFoundException {
+    if (constants == null) {
+      InputStream is = this.getClass().getResourceAsStream("/constants.json");
+      constants = (new Gson()).<Constants>fromJson(new InputStreamReader(is), Constants.class);
+    }
   }
 
   private InterpreterGroup intpGroup;
@@ -62,7 +68,7 @@ class BigQueryInterpreterTest {
 
   private InterpreterContext context;
 
-  @BeforeEach
+  @Before
   public void setUp() throws Exception {
     Properties p = new Properties();
     p.setProperty("zeppelin.bigquery.project_id", constants.getProjectId());
@@ -78,27 +84,27 @@ class BigQueryInterpreterTest {
   }
 
   @Test
-  void sqlSuccess() {
+  public void sqlSuccess() {
     InterpreterResult ret = bqInterpreter.interpret(constants.getOne(), context);
     assertEquals(InterpreterResult.Code.SUCCESS, ret.code());
-    assertEquals(InterpreterResult.Type.TABLE, ret.message().get(0).getType());
+    assertEquals(ret.message().get(0).getType(), InterpreterResult.Type.TABLE);
   }
 
   @Test
-  void badSqlSyntaxFails() {
+  public void badSqlSyntaxFails() {
     InterpreterResult ret = bqInterpreter.interpret(constants.getWrong(), context);
     assertEquals(InterpreterResult.Code.ERROR, ret.code());
   }
 
   @Test
-  void testWithQueryPrefix() {
+  public void testWithQueryPrefix() {
     InterpreterResult ret = bqInterpreter.interpret(
         "#standardSQL\n WITH t AS (select 1) SELECT * FROM t", context);
     assertEquals(InterpreterResult.Code.SUCCESS, ret.code());
   }
 
   @Test
-  void testInterpreterOutputData() {
+  public void testInterpreterOutputData() {
     InterpreterResult ret = bqInterpreter.interpret("SELECT 1 AS col1, 2 AS col2", context);
     String[] lines = ret.message().get(0).getData().split("\\n");
     assertEquals(2, lines.length);

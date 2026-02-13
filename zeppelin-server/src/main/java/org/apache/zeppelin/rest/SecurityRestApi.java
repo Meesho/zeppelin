@@ -16,6 +16,7 @@
  */
 package org.apache.zeppelin.rest;
 
+import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,12 +44,15 @@ import org.slf4j.LoggerFactory;
 @Path("/security")
 @Produces("application/json")
 @Singleton
-public class SecurityRestApi extends AbstractRestApi {
+public class SecurityRestApi {
   private static final Logger LOG = LoggerFactory.getLogger(SecurityRestApi.class);
+  private static final Gson gson = new Gson();
+
+  private final AuthenticationService authenticationService;
 
   @Inject
   public SecurityRestApi(AuthenticationService authenticationService) {
-    super(authenticationService);
+    this.authenticationService = authenticationService;
   }
 
   /**
@@ -75,7 +79,7 @@ public class SecurityRestApi extends AbstractRestApi {
 
     Map<String, String> data = new HashMap<>();
     data.put("principal", ticketEntry.getPrincipal());
-    data.put("roles", GSON.toJson(ticketEntry.getRoles()));
+    data.put("roles", gson.toJson(ticketEntry.getRoles()));
     data.put("ticket", ticketEntry.getTicket());
 
     JsonResponse<Map<String, String>> response = new JsonResponse<>(Response.Status.OK, "", data);

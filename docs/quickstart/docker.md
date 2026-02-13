@@ -55,15 +55,6 @@ vi `/etc/docker/daemon.json`, Add `tcp://0.0.0.0:2375` to the `hosts` configurat
 
 `hosts` property reference: https://docs.docker.com/engine/reference/commandline/dockerd/
 
-#### Security warning
-
-Making the Docker daemon available over TCP is potentially dangerous: as you
-can read [here](https://docs.docker.com/engine/security/#docker-daemon-attack-surface),
-the docker daemon typically has broad privileges, so only trusted users should
-have access to it. If you expose the daemon over TCP, you must use firewalling
-to make sure only trusted users can access the port. This also includes making
-sure the interpreter docker containers that are started by Zeppelin do not have
-access to this port.
 
 ## Quickstart
 
@@ -88,7 +79,7 @@ access to this port.
  Set to the same time zone as the zeppelin server, keeping the time zone in the interpreter docker container the same as the server. E.g, `"America/New_York"` or `"Asia/Shanghai"`
 
  ```bash
- export ZEPPELIN_DOCKER_TIME_ZONE="America/New_York"
+ export DOCKER_TIME_ZONE="America/New_York"
  ```
 
 

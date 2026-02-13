@@ -18,17 +18,16 @@ package org.apache.zeppelin.tabledata;
 
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResultMessage;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import org.junit.Test;
 
 import java.util.Iterator;
 
+import static junit.framework.TestCase.assertFalse;
+import static org.junit.Assert.assertEquals;
 
-class InterpreterResultTableDataTest {
+public class InterpreterResultTableDataTest {
   @Test
-  void test() {
+  public void test() {
     InterpreterResultMessage msg = new InterpreterResultMessage(
         InterpreterResult.Type.TABLE,
         "key\tvalue\nsun\t100\nmoon\t200\n");

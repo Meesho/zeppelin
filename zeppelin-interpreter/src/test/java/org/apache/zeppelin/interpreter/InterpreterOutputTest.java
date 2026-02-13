@@ -16,34 +16,35 @@
  */
 package org.apache.zeppelin.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-class InterpreterOutputTest implements InterpreterOutputListener {
+
+public class InterpreterOutputTest implements InterpreterOutputListener {
   private InterpreterOutput out;
   int numAppendEvent;
   int numUpdateEvent;
 
-  @BeforeEach
-  void setUp() {
+  @Before
+  public void setUp() {
     out = new InterpreterOutput(this);
     numAppendEvent = 0;
     numUpdateEvent = 0;
   }
 
-  @AfterEach
-  void tearDown() throws IOException {
+  @After
+  public void tearDown() throws IOException {
     out.close();
   }
 
   @Test
-  void testDetectNewline() throws IOException {
+  public void testDetectNewline() throws IOException {
     out.write("hello\nworld");
     assertEquals(1, out.size());
     assertEquals(InterpreterResult.Type.TEXT, out.getOutputAt(0).getType());
@@ -58,7 +59,7 @@ class InterpreterOutputTest implements InterpreterOutputListener {
   }
 
   @Test
-  void testFlush() throws IOException {
+  public void testFlush() throws IOException {
     out.write("hello\nworld");
     assertEquals("hello\n", new String(out.getOutputAt(0).toByteArray()));
     assertEquals(1, numAppendEvent);
@@ -80,7 +81,7 @@ class InterpreterOutputTest implements InterpreterOutputListener {
 
 
   @Test
-  void testType() throws IOException {
+  public void testType() throws IOException {
     // default output stream type is TEXT
     out.write("Text\n");
     assertEquals(InterpreterResult.Type.TEXT, out.getOutputAt(0).getType());
@@ -112,13 +113,13 @@ class InterpreterOutputTest implements InterpreterOutputListener {
   }
 
   @Test
-  void testChangeTypeInTheBeginning() throws IOException {
+  public void testChangeTypeInTheBeginning() throws IOException {
     out.write("%html\nHello");
     assertEquals(InterpreterResult.Type.HTML, out.getOutputAt(0).getType());
   }
 
   @Test
-  void testChangeTypeWithMultipleNewline() throws IOException {
+  public void testChangeTypeWithMultipleNewline() throws IOException {
     out.write("%html\n");
     assertEquals(InterpreterResult.Type.HTML, out.getOutputAt(0).getType());
 
@@ -136,14 +137,14 @@ class InterpreterOutputTest implements InterpreterOutputListener {
   }
 
   @Test
-  void testChangeTypeWithoutData() throws IOException {
+  public void testChangeTypeWithoutData() throws IOException {
     out.write("%html\n%table\n");
     assertEquals(InterpreterResult.Type.HTML, out.getOutputAt(0).getType());
     assertEquals(InterpreterResult.Type.TABLE, out.getOutputAt(1).getType());
   }
 
   @Test
-  void testMagicData() throws IOException {
+  public void testMagicData() throws IOException {
     out.write("%table col1\tcol2\n\n%html <h3> This is a hack </h3>\t234\n".getBytes());
     assertEquals(InterpreterResult.Type.TABLE, out.getOutputAt(0).getType());
     assertEquals(InterpreterResult.Type.HTML, out.getOutputAt(1).getType());
@@ -154,7 +155,7 @@ class InterpreterOutputTest implements InterpreterOutputListener {
 
 
   @Test
-  void testTableCellFormatting() throws IOException {
+  public void testTableCellFormatting() throws IOException {
     out.write("%table col1\tcol2\n\n%html val1\tval2\n".getBytes());
     assertEquals(InterpreterResult.Type.TABLE, out.getOutputAt(0).getType());
     assertEquals("col1\tcol2\n", new String(out.getOutputAt(0).toByteArray()));
@@ -163,7 +164,7 @@ class InterpreterOutputTest implements InterpreterOutputListener {
   }
 
   @Test
-  void testMixTableText() throws IOException {
+  public void testMixTableText() throws IOException {
     out.write("%table col1\tcol2\n\n%text val1".getBytes());
     assertEquals(InterpreterResult.Type.TABLE, out.getOutputAt(0).getType());
     assertEquals("col1\tcol2\n", new String(out.getOutputAt(0).toByteArray()));
@@ -173,7 +174,7 @@ class InterpreterOutputTest implements InterpreterOutputListener {
   }
 
   @Test
-  void testTruncate() throws IOException {
+  public void testTruncate() throws IOException {
     // output is truncated after the new line
     InterpreterOutput.LIMIT = 3;
     out = new InterpreterOutput(this);

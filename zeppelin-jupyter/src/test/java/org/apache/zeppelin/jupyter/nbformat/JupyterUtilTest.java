@@ -16,10 +16,10 @@
  */
 package org.apache.zeppelin.jupyter.nbformat;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -34,15 +34,15 @@ import org.apache.zeppelin.jupyter.JupyterUtil;
 import org.apache.zeppelin.jupyter.zformat.Note;
 import org.apache.zeppelin.jupyter.zformat.Paragraph;
 import org.apache.zeppelin.jupyter.zformat.TypeData;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 /**
  *
  */
-class JupyterUtilTest {
+public class JupyterUtilTest {
 
   @Test
-  void getNbFormat() throws Exception {
+  public void getNbFormat() throws Exception {
     InputStream resource = getClass().getResourceAsStream("/basic.ipynb");
     Nbformat nbformat = new JupyterUtil().getNbformat(new InputStreamReader(resource));
     assertTrue(nbformat.getCells().get(0) instanceof CodeCell);
@@ -52,14 +52,14 @@ class JupyterUtilTest {
   }
 
   @Test
-  void getNote() throws Exception {
+  public void getNote() throws Exception {
     InputStream resource = getClass().getResourceAsStream("/examples.ipynb");
     Note n = new JupyterUtil().getNote(new InputStreamReader(resource), "", "%python", "%md");
     assertNotNull(n);
   }
 
   @Test
-  void getNoteAndVerifyData() throws Exception {
+  public void getNoteAndVerifyData() throws Exception {
     String noteName = "Note converted from Jupyter";
     InputStream resource = getClass().getResourceAsStream("/basic.ipynb");
     Note n = new JupyterUtil().getNote(new InputStreamReader(resource), "", "%python", "%md");
@@ -102,7 +102,7 @@ class JupyterUtilTest {
   }
 
   @Test
-  void testgetNbformat() {
+  public void testgetNbformat() {
     InputStream resource = getClass().getResourceAsStream("/spark_example_notebook.zpln");
     String text = new BufferedReader(
       new InputStreamReader(resource, StandardCharsets.UTF_8))

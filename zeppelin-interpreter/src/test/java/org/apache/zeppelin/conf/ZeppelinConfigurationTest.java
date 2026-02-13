@@ -16,34 +16,29 @@
  */
 package org.apache.zeppelin.conf;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.Test;
 
 import java.time.format.DateTimeParseException;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.*;
 
-class ZeppelinConfigurationTest {
+public class ZeppelinConfigurationTest {
 
   @Test
-  void testTimeUnitToMill() {
+  public void testTimeUnitToMill() {
     assertEquals(10L, ZeppelinConfiguration.timeUnitToMill("10ms"));
     assertEquals(2000L, ZeppelinConfiguration.timeUnitToMill("2s"));
     assertEquals(60000L, ZeppelinConfiguration.timeUnitToMill("1m"));
     assertEquals(3600000L, ZeppelinConfiguration.timeUnitToMill("1h"));
   }
 
-  @Test
-  void testTimeUnitToMill_WithoutUnit_1() {
-    assertThrows(DateTimeParseException.class, () -> {
-      ZeppelinConfiguration.timeUnitToMill("60000");
-    });
+  @Test(expected = DateTimeParseException.class)
+  public void testTimeUnitToMill_WithoutUnit_1() {
+    assertEquals(DateTimeParseException.class, ZeppelinConfiguration.timeUnitToMill("60000"));
   }
 
-  @Test
-  void testTimeUnitToMill_WithoutUnit_2() {
-    assertThrows(DateTimeParseException.class, () -> {
-      ZeppelinConfiguration.timeUnitToMill("0");
-    });
+  @Test(expected = DateTimeParseException.class)
+  public void testTimeUnitToMill_WithoutUnit_2() {
+    assertEquals(DateTimeParseException.class, ZeppelinConfiguration.timeUnitToMill("0"));
   }
 }

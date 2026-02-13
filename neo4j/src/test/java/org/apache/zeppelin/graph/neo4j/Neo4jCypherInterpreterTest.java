@@ -16,7 +16,6 @@
  */
 package org.apache.zeppelin.graph.neo4j;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.graph.neo4j.Neo4jConnectionManager.Neo4jAuthType;
@@ -26,38 +25,37 @@ import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResult.Code;
 import org.apache.zeppelin.interpreter.graph.GraphResult;
 import org.apache.zeppelin.tabledata.Node;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.MethodOrderer;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.FixMethodOrder;
+import org.junit.Test;
+import org.junit.runners.MethodSorters;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Session;
 import org.testcontainers.containers.Neo4jContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-@Testcontainers
-@TestMethodOrder(MethodOrderer.MethodName.class)
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class Neo4jCypherInterpreterTest {
 
   private Neo4jCypherInterpreter interpreter;
 
   private InterpreterContext context;
 
-  @Container
+  @ClassRule
   public static Neo4jContainer<?> neo4jContainer = new Neo4jContainer<>("neo4j:4.1.1")
           .withoutAuthentication();
 
@@ -77,7 +75,7 @@ public class Neo4jCypherInterpreterTest {
   private static final String TABLE_RESULT_PREFIX = "%table ";
   private static final String NETWORK_RESULT_PREFIX = "%network ";
 
-  @BeforeAll
+  @BeforeClass
   public static void setUpNeo4jServer() {
     try (Driver driver = GraphDatabase.driver(neo4jContainer.getBoltUrl());
          Session session = driver.session()) {
@@ -86,7 +84,7 @@ public class Neo4jCypherInterpreterTest {
     }
   }
 
-  @BeforeEach
+  @Before
   public void setUpZeppelin() {
     Properties p = new Properties();
     p.setProperty(Neo4jConnectionManager.NEO4J_SERVER_URL, neo4jContainer.getBoltUrl());
@@ -99,13 +97,13 @@ public class Neo4jCypherInterpreterTest {
         .build();
   }
 
-  @AfterEach
+  @After
   public void tearDownZeppelin() throws Exception {
     interpreter.close();
   }
 
   @Test
-  void testTableWithArray() {
+  public void testTableWithArray() {
     interpreter.open();
     InterpreterResult result = interpreter.interpret(
             "return 'a' as colA, 'b' as colB, [1, 2, 3] as colC", context);
@@ -123,7 +121,7 @@ public class Neo4jCypherInterpreterTest {
   }
 
   @Test
-  void testCreateIndex() {
+  public void testCreateIndex() {
     interpreter.open();
     InterpreterResult result = interpreter.interpret("CREATE INDEX ON :Person(name)", context);
     assertEquals(Code.SUCCESS, result.code());
@@ -131,7 +129,7 @@ public class Neo4jCypherInterpreterTest {
   }
 
   @Test
-  void testRenderTable() {
+  public void testRenderTable() {
     interpreter.open();
     InterpreterResult result = interpreter.interpret("MATCH (n:Person) "
             + "WHERE n.name IN ['name1', 'name2', 'name3'] "
@@ -146,7 +144,7 @@ public class Neo4jCypherInterpreterTest {
   }
 
   @Test
-  void testRenderMap() {
+  public void testRenderMap() {
     interpreter.open();
     final String jsonQuery =
             "RETURN {key: \"value\", listKey: [{inner: \"Map1\"}, {inner: \"Map2\"}]} as object";
@@ -233,7 +231,7 @@ public class Neo4jCypherInterpreterTest {
   }
 
   @Test
-  void testRenderNetwork() {
+  public void testRenderNetwork() {
     interpreter.open();
     InterpreterResult result = interpreter.interpret(
             "MATCH (n)-[r:KNOWS]-(m) RETURN n, r, m LIMIT 1", context);
@@ -251,7 +249,7 @@ public class Neo4jCypherInterpreterTest {
   }
 
   @Test
-  void testFallingQuery() {
+  public void testFallingQuery() {
     interpreter.open();
     final String errorMsgEmpty = "";
     InterpreterResult result = interpreter.interpret(StringUtils.EMPTY, context);
@@ -268,7 +266,7 @@ public class Neo4jCypherInterpreterTest {
   }
 
   @Test
-  void testDates() {
+  public void testDates() {
     InterpreterResult result = interpreter.interpret(
             "RETURN datetime('2015-06-24T12:50:35.556+0100') AS theDateTime", context);
     assertEquals(Code.SUCCESS, result.code());
@@ -298,7 +296,7 @@ public class Neo4jCypherInterpreterTest {
   }
 
   @Test
-  void testDuration() {
+  public void testDuration() {
     InterpreterResult result = interpreter.interpret(
             "RETURN duration('P14DT16H12M') AS theDuration", context);
     assertEquals(Code.SUCCESS, result.code());
@@ -307,7 +305,7 @@ public class Neo4jCypherInterpreterTest {
   }
 
   @Test
-  void testPoint() {
+  public void testPoint() {
     InterpreterResult result = interpreter.interpret("RETURN point({ x:3, y:0 }) AS cartesian_2d,"
             + "point({ x:0, y:4, z:1 }) AS cartesian_3d,"
             + "point({ latitude: 12, longitude: 56 }) AS geo_2d,"
@@ -329,7 +327,7 @@ public class Neo4jCypherInterpreterTest {
   }
 
   @Test
-  void testMultiLineInterpreter() {
+  public void testMultiLineInterpreter() {
     Properties p = new Properties();
     p.setProperty(Neo4jConnectionManager.NEO4J_SERVER_URL, neo4jContainer.getBoltUrl());
     p.setProperty(Neo4jConnectionManager.NEO4J_AUTH_TYPE, Neo4jAuthType.NONE.toString());
@@ -360,7 +358,7 @@ public class Neo4jCypherInterpreterTest {
   }
 
   @Test
-  void testNodeDataTypes() throws IOException {
+  public void testNodeDataTypes() throws JsonProcessingException {
     InterpreterResult result = interpreter.interpret(
             "CREATE (n:NodeTypes{" +
                     "dateTime: datetime('2015-06-24T12:50:35.556+0100')," +

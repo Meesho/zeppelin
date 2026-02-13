@@ -26,12 +26,9 @@ import org.apache.zeppelin.interpreter.InterpreterOutput;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResultMessage;
 import org.apache.zeppelin.interpreter.LazyOpenInterpreter;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -39,12 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-/**
- * This test class is also used in the module rlang
- *
- * @author pdallig
- */
-@SuppressWarnings("java:S5786")
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 public class IRKernelTest {
 
   protected Interpreter interpreter;
@@ -54,7 +48,7 @@ public class IRKernelTest {
     return new JupyterInterpreter(properties);
   }
 
-  @BeforeEach
+  @Before
   public void setUp() throws InterpreterException {
     Properties properties = new Properties();
 
@@ -69,7 +63,7 @@ public class IRKernelTest {
     interpreter.open();
   }
 
-  @AfterEach
+  @After
   public void tearDown() throws InterpreterException {
     if (interpreter != null) {
       interpreter.close();
@@ -77,15 +71,15 @@ public class IRKernelTest {
   }
 
   @Test
-  void testIRInterpreter() throws InterpreterException, IOException {
+  public void testIRInterpreter() throws InterpreterException, IOException {
     InterpreterContext context = getInterpreterContext();
     InterpreterResult result = interpreter.interpret("1+1", context);
     assertEquals(InterpreterResult.Code.SUCCESS, result.code());
     List<InterpreterResultMessage> resultMessages = context.out.toInterpreterResultMessage();
     assertEquals(1, resultMessages.size());
-    assertEquals(InterpreterResult.Type.HTML, resultMessages.get(0).getType(),
-        resultMessages.toString());
-    assertEquals("2", resultMessages.get(0).getData(), resultMessages.toString());
+    assertEquals(resultMessages.toString(),
+            InterpreterResult.Type.HTML, resultMessages.get(0).getType());
+    assertEquals(resultMessages.toString(), "2", resultMessages.get(0).getData());
 
     // error
     context = getInterpreterContext();
@@ -93,9 +87,9 @@ public class IRKernelTest {
     assertEquals(InterpreterResult.Code.ERROR, result.code());
     resultMessages = context.out.toInterpreterResultMessage();
     assertEquals(1, resultMessages.size());
-    assertEquals(InterpreterResult.Type.TEXT, resultMessages.get(0).getType(), result.toString());
-    assertTrue(resultMessages.get(0).getData().contains("object 'unknown_var' not found"),
-        resultMessages.toString());
+    assertEquals(result.toString(), InterpreterResult.Type.TEXT, resultMessages.get(0).getType());
+    assertTrue(resultMessages.toString(),
+            resultMessages.get(0).getData().contains("object 'unknown_var' not found"));
 
     context = getInterpreterContext();
     result = interpreter.interpret("foo <- TRUE\n" +
@@ -107,10 +101,11 @@ public class IRKernelTest {
     assertEquals(InterpreterResult.Code.SUCCESS, result.code());
     resultMessages = context.out.toInterpreterResultMessage();
     assertEquals(1, resultMessages.size());
-    assertEquals(InterpreterResult.Type.TEXT, resultMessages.get(0).getType(), result.toString());
-    assertTrue(resultMessages.get(0).getData().contains("[1] TRUE\n" +
-        "[1] 1.0 2.5 4.0\n" +
-        "[1] 15\n"), resultMessages.toString());
+    assertEquals(result.toString(), InterpreterResult.Type.TEXT, resultMessages.get(0).getType());
+    assertTrue(resultMessages.toString(),
+            resultMessages.get(0).getData().contains("[1] TRUE\n" +
+                    "[1] 1.0 2.5 4.0\n" +
+                    "[1] 15\n"));
 
     // plotting
     context = getInterpreterContext();
@@ -118,8 +113,8 @@ public class IRKernelTest {
     assertEquals(InterpreterResult.Code.SUCCESS, result.code());
     resultMessages = context.out.toInterpreterResultMessage();
     assertEquals(1, resultMessages.size());
-    assertEquals(InterpreterResult.Type.IMG, resultMessages.get(0).getType(),
-        resultMessages.toString());
+    assertEquals(resultMessages.toString(),
+            InterpreterResult.Type.IMG, resultMessages.get(0).getType());
 
     // ggplot2
     result = interpreter.interpret("library(ggplot2)\n" +
@@ -128,8 +123,8 @@ public class IRKernelTest {
     assertEquals(InterpreterResult.Code.SUCCESS, result.code());
     resultMessages = context.out.toInterpreterResultMessage();
     assertEquals(1, resultMessages.size());
-    assertEquals(InterpreterResult.Type.IMG, resultMessages.get(0).getType(),
-        resultMessages.toString());
+    assertEquals(resultMessages.toString(),
+            InterpreterResult.Type.IMG, resultMessages.get(0).getType());
 
     // googlevis
     // TODO(zjffdu) It is weird that googlevis doesn't work with spark 2.2
@@ -144,10 +139,10 @@ public class IRKernelTest {
       assertEquals(InterpreterResult.Code.SUCCESS, result.code());
       resultMessages = context.out.toInterpreterResultMessage();
       assertEquals(2, resultMessages.size());
-      assertEquals(InterpreterResult.Type.HTML, resultMessages.get(1).getType(),
-          resultMessages.toString());
-      assertTrue(resultMessages.get(1).getData().contains("javascript"),
-          resultMessages.get(1).getData());
+      assertEquals(resultMessages.toString(),
+              InterpreterResult.Type.HTML, resultMessages.get(1).getType());
+      assertTrue(resultMessages.get(1).getData(),
+              resultMessages.get(1).getData().contains("javascript"));
     }
   }
 

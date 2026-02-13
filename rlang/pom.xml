@@ -23,7 +23,7 @@
     <parent>
         <artifactId>zeppelin-interpreter-parent</artifactId>
         <groupId>org.apache.zeppelin</groupId>
-        <version>0.11.2</version>
+        <version>0.11.0-SNAPSHOT</version>
         <relativePath>../zeppelin-interpreter-parent/pom.xml</relativePath>
     </parent>
 
@@ -34,9 +34,12 @@
 
     <properties>
         <interpreter.name>r</interpreter.name>
-        <spark.version>3.4.1</spark.version>
+        <spark.version>2.4.5</spark.version>
 
         <spark.archive>spark-${spark.version}</spark.archive>
+        <spark.src.download.url>
+            https://archive.apache.org/dist/spark/${spark.archive}/${spark.archive}.tgz
+        </spark.src.download.url>
         <spark.bin.download.url>
             https://archive.apache.org/dist/spark/${spark.archive}/${spark.archive}-bin-without-hadoop.tgz
         </spark.bin.download.url>
@@ -88,29 +91,19 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.reload4j</groupId>
-            <artifactId>reload4j</artifactId>
+            <version>4.5.13</version>
         </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
+            <artifactId>mockito-all</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.12</artifactId>
+            <artifactId>spark-core_2.11</artifactId>
             <version>${spark.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-client-api</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
@@ -131,12 +124,6 @@
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
             <scope>compile</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
@@ -217,7 +204,6 @@
                     <artifactSet>
                         <excludes>
                             <exclude>org.apache.zeppelin:zeppelin-interpreter-shaded</exclude>
-                            <exclude>log4j:log4j</exclude>
                         </excludes>
                     </artifactSet>
                     <outputFile>${project.build.directory}/../../interpreter/r/${interpreter.jar.name}-${project.version}.jar</outputFile>

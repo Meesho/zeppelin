@@ -16,15 +16,14 @@
  */
 package org.apache.zeppelin.realm;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.UsernamePasswordToken;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 /**
  * The test will only be executed if the environment variables PAM_USER and PAM_PASS are present.
@@ -57,7 +56,7 @@ public class PamRealmTest {
 
     AuthenticationInfo authInfo = realm.doGetAuthenticationInfo(authToken);
 
-    assertNotNull(authInfo.getCredentials());
+    assertTrue(authInfo.getCredentials() != null);
   }
 
   public static void main(String[] args) {

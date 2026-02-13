@@ -19,17 +19,17 @@ package org.apache.zeppelin.display;
 
 import org.apache.thrift.TException;
 import org.apache.zeppelin.interpreter.InterpreterContext;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
+import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-class AngularObjectTest {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+
+public class AngularObjectTest {
 
   @Test
-  void testEquals() {
+  public void testEquals() {
     assertEquals(
         new AngularObject("name", "value", "note1", null, null),
         new AngularObject("name", "value", "note1", null, null)
@@ -79,7 +79,7 @@ class AngularObjectTest {
   }
 
   @Test
-  void testListener() throws TException {
+  public void testListener() throws TException {
     final AtomicInteger updated = new AtomicInteger(0);
     AngularObject ao = new AngularObject("name", "value", "note1", null,
         new AngularObjectListener() {
@@ -104,7 +104,7 @@ class AngularObjectTest {
   }
 
   @Test
-  void testWatcher() throws InterruptedException, TException {
+  public void testWatcher() throws InterruptedException, TException {
     final AtomicInteger updated = new AtomicInteger(0);
     final AtomicInteger onWatch = new AtomicInteger(0);
     AngularObject ao = new AngularObject("name", "value", "note1", null,

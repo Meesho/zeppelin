@@ -41,13 +41,14 @@ public class YarnInterpreterLauncher extends InterpreterLauncher {
   @Override
   public InterpreterClient launchDirectly(InterpreterLaunchContext context) throws IOException {
     LOGGER.info("Launching Interpreter: {}", context.getInterpreterSettingGroup());
+    this.properties = context.getProperties();
 
     return new YarnRemoteInterpreterProcess(
             context,
-            context.getProperties(),
+            properties,
             buildEnvFromProperties(context),
-            getConnectTimeout(context),
-            getConnectPoolSize(context));
+            getConnectTimeout(),
+            getConnectPoolSize());
   }
 
   protected Map<String, String> buildEnvFromProperties(InterpreterLaunchContext context) {

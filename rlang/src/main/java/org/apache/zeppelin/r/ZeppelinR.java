@@ -124,9 +124,11 @@ public class ZeppelinR {
     cmd.addArgument(rInterpreter.sparkVersion() + "");
     cmd.addArgument(timeout);
     cmd.addArgument(rInterpreter.isSparkSupported() + "");
-    cmd.addArgument(SparkRBackend.get().socketSecret());
+    if (rInterpreter.isSecretSupported()) {
+      cmd.addArgument(SparkRBackend.get().socketSecret());
+    }
     // dump out the R command to facilitate manually running it, e.g. for fault diagnosis purposes
-    LOGGER.info("R Command: {}", cmd);
+    LOGGER.info("R Command: " + cmd.toString());
     processOutputStream = new RProcessLogOutputStream(rInterpreter);
     Map env = EnvironmentUtils.getProcEnvironment();
     rProcessLauncher = new RProcessLauncher(cmd, env, processOutputStream);

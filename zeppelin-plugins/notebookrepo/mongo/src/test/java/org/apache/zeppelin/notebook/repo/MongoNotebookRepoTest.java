@@ -18,8 +18,11 @@
 package org.apache.zeppelin.notebook.repo;
 
 import static org.apache.zeppelin.conf.ZeppelinConfiguration.ConfVars.ZEPPELIN_NOTEBOOK_MONGO_URI;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Map;
@@ -34,11 +37,8 @@ import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.notebook.Paragraph;
 import org.apache.zeppelin.user.AuthenticationInfo;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
-class MongoNotebookRepoTest {
+public class MongoNotebookRepoTest {
 
   private MongodExecutable mongodExecutable;
 
@@ -46,8 +46,8 @@ class MongoNotebookRepoTest {
 
   private MongoNotebookRepo notebookRepo;
 
-  @BeforeEach
-  void setUp() throws IOException {
+  @Before
+  public void setUp() throws IOException {
     String bindIp = "localhost";
     ServerSocket socket = new ServerSocket(0);
     int port = socket.getLocalPort();
@@ -68,15 +68,15 @@ class MongoNotebookRepoTest {
     notebookRepo.init(zConf);
   }
 
-  @AfterEach
-  void tearDown() throws IOException {
+  @After
+  public void tearDown() throws IOException {
     if (mongodExecutable != null) {
       mongodExecutable.stop();
     }
   }
 
   @Test
-  void testBasics() throws IOException {
+  public void testBasics() throws IOException {
     assertEquals(0, notebookRepo.list(AuthenticationInfo.ANONYMOUS).size());
 
     // create note1
@@ -128,7 +128,7 @@ class MongoNotebookRepoTest {
   }
 
   @Test
-  void testGetNotePath() throws IOException {
+  public void testGetNotePath() throws IOException {
     assertEquals(0, notebookRepo.list(AuthenticationInfo.ANONYMOUS).size());
 
     Note note = new Note();
