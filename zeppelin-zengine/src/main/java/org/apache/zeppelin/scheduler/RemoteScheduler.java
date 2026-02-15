@@ -30,8 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * RemoteScheduler runs in ZeppelinServer and proxies Scheduler running on RemoteInterpreter.
- * It is some kind of FIFOScheduler, but only run the next job after the current job is submitted
- * to remote.
+ * It can run jobs in parallel with a configurable max concurrency, but only runs the next job
+ * after the current job is submitted to remote.
  */
 public class RemoteScheduler extends AbstractScheduler {
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteScheduler.class);
@@ -43,7 +43,8 @@ public class RemoteScheduler extends AbstractScheduler {
                          RemoteInterpreter remoteInterpreter) {
     super(name);
     this.executor =
-        Executors.newSingleThreadExecutor(new SchedulerThreadFactory("FIFO-" + name + "-"));
+        Executors.newFixedThreadPool(10,
+            new SchedulerThreadFactory("Parallel-" + name + "-"));
     this.remoteInterpreter = remoteInterpreter;
   }
 
