@@ -20,7 +20,11 @@
 # common fucntions
 
 if [[ -z "${TAR}" ]]; then
-  TAR="/usr/bin/tar"
+  TAR="tar"
+  if [ "$(uname -s)" = "Darwin" ]; then
+    export COPYFILE_DISABLE=1
+    TAR="tar --no-mac-metadata --no-xattrs --no-fflags"
+  fi
 fi
 
 if [[ -z "${SHASUM}" ]]; then
@@ -46,7 +50,7 @@ usage() {
 function git_clone() {
   echo "Clone the source"
   # clone source
-  git clone https://gitbox.apache.org/repos/asf/zeppelin.git "${WORKING_DIR}/zeppelin"
+  git clone https://github.com/apache/zeppelin "${WORKING_DIR}/zeppelin"
 
   if [[ $? -ne 0 ]]; then
     echo "Can not clone source repository"

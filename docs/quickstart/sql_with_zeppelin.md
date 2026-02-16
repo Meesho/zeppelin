@@ -35,6 +35,7 @@ The following guides explain how to use Apache Zeppelin that enables you to writ
   * [Apache Hive](../interpreter/jdbc.html#apache-hive)
   * [Presto/Trino](../interpreter/jdbc.html#prestotrino)
   * [Impala](../interpreter/jdbc.html#impala)
+  * [Apache Kyuubi](../interpreter/jdbc.html#apache-kyuubi)
   * [Apache Phoenix](../interpreter/jdbc.html#apache-phoenix) 
   * [Apache Drill](../interpreter/jdbc.html#apache-drill)
   * [Apache Tajo](../interpreter/jdbc.html#apache-tajo)
@@ -62,7 +63,6 @@ For the further information about SQL support in Zeppelin, please check
 - [Spark Interpreter](../interpreter/spark.html)
 - [Flink Interpreter](../interpreter/flink.html)
 - [Python Interpreter](../interpreter/python.html)
-- [IgniteSQL Interpreter](../interpreter/ignite.html#ignite-sql-interpreter) for [Apache Ignite](https://ignite.apache.org/)
 
 
 

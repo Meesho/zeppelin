@@ -46,7 +46,7 @@ if [[ $RELEASE_VERSION == *"SNAPSHOT"* ]]; then
   DO_SNAPSHOT="yes"
 fi
 
-PUBLISH_PROFILES="-Ppublish-distr -Phadoop-2.6 -Pweb-angular"
+PUBLISH_PROFILES="-Ppublish-distr -Pweb-angular"
 PROJECT_OPTIONS="-pl !zeppelin-distribution -Dmaven.javadoc.skip=true"
 NEXUS_STAGING="https://repository.apache.org/service/local/staging"
 NEXUS_PROFILE="153446d1ac37c4"
@@ -91,12 +91,8 @@ function publish_snapshot_to_maven() {
   echo "<password>$ASF_PASSWORD</password>" >> $tmp_settings
   echo "</server></servers></settings>" >> $tmp_settings
 
-  ./mvnw --settings $tmp_settings -Dmaven.repo.local="${tmp_repo}" -Pbeam -DskipTests \
+  ./mvnw --settings $tmp_settings -Dmaven.repo.local="${tmp_repo}" -DskipTests \
     $PUBLISH_PROFILES -Drat.skip=true deploy
-
-  "${BASEDIR}/change_scala_version.sh" 2.11
-  ./mvnw -Pscala-2.11 --settings $tmp_settings -Dmaven.repo.local="${tmp_repo}" -Pbeam -DskipTests \
-    $PUBLISH_PROFILES -Drat.skip=true clean deploy
 
   rm $tmp_settings
   rm -rf $tmp_repo
@@ -142,8 +138,9 @@ function publish_to_maven() {
 
   echo "Creating hash and signature files"
   for file in $(find . -type f); do
-    echo "${GPG_PASSPHRASE}" | gpg --passphrase-fd 0 --output "${file}.asc" \
-      --detach-sig --armor "${file}"
+    gpg --batch --pinentry-mode loopback --passphrase "${GPG_PASSPHRASE}" --armor \
+      --output "${file}.asc" \
+      --detach-sig "${file}"
     md5 -q "${file}" > "${file}.md5"
     ${SHASUM} -a 1 "${file}" | cut -f1 -d' ' > "${file}.sha1"
   done

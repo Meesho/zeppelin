@@ -22,7 +22,7 @@
   <parent>
     <artifactId>zeppelin-interpreter-parent</artifactId>
     <groupId>org.apache.zeppelin</groupId>
-    <version>0.11.0-SNAPSHOT</version>
+    <version>0.11.2</version>
     <relativePath>../zeppelin-interpreter-parent/pom.xml</relativePath>
   </parent>
 
@@ -33,14 +33,12 @@
   <properties>
     <!--library versions-->
     <interpreter.name>hbase</interpreter.name>
-    <hbase.hbase.version>1.0.0</hbase.hbase.version>
-    <hbase.hadoop.version>${hadoop2.6.version}</hbase.hadoop.version>
+    <hbase.hbase.version>2.4.12</hbase.hbase.version>
+    <hbase.hadoop.version>${hadoop2.7.version}</hbase.hadoop.version>
     <jruby.version>1.6.8</jruby.version>
     <protobuf.version>2.5.0</protobuf.version>
     <jline.version>2.12.1</jline.version>
 
-    <!--test library versions-->
-    <hamcrest.all.version>1.3</hamcrest.all.version>
   </properties>
 
   <dependencies>
@@ -49,12 +47,6 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-exec</artifactId>
       <version>${commons.exec.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-all</artifactId>
-      <version>${hamcrest.all.version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jruby</groupId>
@@ -87,11 +79,6 @@
       <version>${protobuf.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.hbase</groupId>
-      <artifactId>hbase-server</artifactId>
-      <version>${hbase.hbase.version}</version>
-    </dependency>
-    <dependency>
       <groupId>jline</groupId>
       <artifactId>jline</artifactId>
       <version>${jline.version}</version>
@@ -112,9 +99,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <configuration>
-          <skip>false</skip>
-        </configuration>
       </plugin>
     </plugins>
   </build>
