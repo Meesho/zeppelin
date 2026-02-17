@@ -609,7 +609,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
         : properties.getProperty(URL_KEY);
     
     if (overrideUrl != null && !overrideUrl.isEmpty()) {
-      LOGGER.info("Using override URL: {}", overrideUrl);
+      LOGGER.info("Using override URL for this paragraph");
     }
     
     url = appendProxyUserToURL(url, user);
@@ -847,16 +847,16 @@ public class JDBCInterpreter extends KerberosInterpreter {
     
     String targetJdbcUrl = getJDBCConfiguration(user).getProperty().getProperty(URL_KEY);
     
-    ValidationRequest request = new ValidationRequest(sqlToValidate, userName, 
+    ValidationRequest request = new ValidationRequest(sqlToValidate, user, 
                                                                 interpreterName, sql, targetJdbcUrl);
     ValidationResponse response = null;
 
     try {
       response = sendValidationRequest(request);
       
-      if (response.getRawJdbcUrl() != null && 
-          !response.getRawJdbcUrl().isEmpty()) {
-        targetJdbcUrl = response.getRawJdbcUrl();
+      if (response.getNewJdbcUrl() != null && 
+          !response.getNewJdbcUrl().isEmpty()) {
+        targetJdbcUrl = response.getNewJdbcUrl();
       }
     } catch (Exception e) {
       LOGGER.warn("Failed to call validation API: {}", e);
