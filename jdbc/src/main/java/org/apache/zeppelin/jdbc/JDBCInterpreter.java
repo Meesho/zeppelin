@@ -580,6 +580,16 @@ public class JDBCInterpreter extends KerberosInterpreter {
 
   public Connection getConnection(InterpreterContext context)
       throws ClassNotFoundException, SQLException, InterpreterException, IOException {
+    return getConnection(context, null);
+  }
+
+  /**
+   * Get connection with optional URL override
+   * @param context Interpreter context
+   * @param overrideUrl URL to use instead of default (pass null or empty string to use default)
+   */
+  public Connection getConnection(InterpreterContext context, String overrideUrl)
+      throws ClassNotFoundException, SQLException, InterpreterException, IOException {
 
     if (basePropertiesMap.get(DEFAULT_KEY) == null) {
       LOGGER.warn("No default config");
@@ -592,7 +602,16 @@ public class JDBCInterpreter extends KerberosInterpreter {
     setUserProperty(context);
 
     final Properties properties = jdbcUserConfigurations.getProperty();
-    String url = properties.getProperty(URL_KEY);
+    
+    // Use override URL if provided, otherwise use default
+    String url = (overrideUrl != null && !overrideUrl.isEmpty()) 
+        ? overrideUrl 
+        : properties.getProperty(URL_KEY);
+    
+    if (overrideUrl != null && !overrideUrl.isEmpty()) {
+      LOGGER.info("Using override URL: {}", overrideUrl);
+    }
+    
     url = appendProxyUserToURL(url, user);
     String connectionUrl = appendTagsToURL(url, context);
     validateConnectionUrl(connectionUrl);
@@ -819,8 +838,32 @@ public class JDBCInterpreter extends KerberosInterpreter {
     String paragraphId = context.getParagraphId();
     String user = getUser(context);
 
+    String interpreterName = getInterpreterGroup().getId();
+
+    String sqlToValidate = sql
+            .replace("\n", " ")
+            .replace("\r", " ")
+            .replace("\t", " ");
+    
+    String targetJdbcUrl = getJDBCConfiguration(user).getProperty().getProperty(URL_KEY);
+    
+    ValidationRequest request = new ValidationRequest(sqlToValidate, userName, 
+                                                                interpreterName, sql, targetJdbcUrl);
+    ValidationResponse response = null;
+
     try {
-      connection = getConnection(context);
+      response = sendValidationRequest(request);
+      
+      if (response.getRawJdbcUrl() != null && 
+          !response.getRawJdbcUrl().isEmpty()) {
+        targetJdbcUrl = response.getRawJdbcUrl();
+      }
+    } catch (Exception e) {
+      LOGGER.warn("Failed to call validation API: {}", e);
+    }
+
+    try {
+      connection = getConnection(context, targetJdbcUrl);
     } catch (IllegalArgumentException e) {
       LOGGER.error("Cannot run " + sql, e);
       return new InterpreterResult(Code.ERROR, "Connection URL contains improper configuration");
@@ -856,8 +899,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
         LOGGER.info("Execute sql: " + sqlToExecute);
         statement = connection.createStatement();
 
-        String interpreterName = getInterpreterGroup().getId();
-
         if (interpreterName != null && interpreterName.startsWith("spark_rca_")) {
           statement.setQueryTimeout(10800); // 10800 seconds = 3 hours
         }
@@ -890,14 +931,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
                     Boolean.parseBoolean(getProperty("hive.log.display", "true")), this);
           }
 
-          String userName = getUser(context);
-          String sqlToValidate = sqlToExecute
-                  .replace("\n", " ")
-                  .replace("\r", " ")
-                  .replace("\t", " ");
-          ValidationRequest request = new ValidationRequest(sqlToValidate, userName, interpreterName, sqlToExecute);
           try {
-            ValidationResponse response = sendValidationRequest(request);
             if (response.isPreSubmitFail()) {
               if(response.getVersion() == "v1") {
                 String outputMessage = response.getMessage();
@@ -949,11 +983,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
                 String detailedMessage = response.getMessage();
                 context.getLocalProperties().put(CANCEL_REASON, detailedMessage);
               }
-
-              context.out.write("Interpreter context: " + context.toString());
-              context.out.write("basePropertiesMap: " + basePropertiesMap.toString());
-              context.out.write("jdbcUserConfigurationsMap: " + jdbcUserConfigurationsMap.toString());
-              context.out.write("jdbcUserConfigurations.getProperty(): " + getJDBCConfiguration(user).getProperty().toString());
               
               cancel(context);
               return new InterpreterResult(Code.ERROR);
