@@ -436,11 +436,16 @@ public class JDBCInterpreter extends KerberosInterpreter {
     }
   }
 
-  private String getJDBCDriverName(String user) {
+  private String getJDBCDriverName(String user, String url) {
     StringBuffer driverName = new StringBuffer();
     driverName.append(DBCP_STRING);
     driverName.append(DEFAULT_KEY);
     driverName.append(user);
+    // Add sanitized URL to make pool key unique per URL
+    if (url != null && !url.isEmpty()) {
+      String sanitizedUrl = url.replaceAll("[^a-zA-Z0-9]", "_");
+      driverName.append("_").append(sanitizedUrl);
+    }
     return driverName.toString();
   }
 
@@ -471,9 +476,35 @@ public class JDBCInterpreter extends KerberosInterpreter {
   }
 
   private void closeDBPool(String user) throws SQLException {
+    closeDBPool(user, null);
+  }
+
+  /**
+   * Close database pool for user and optional URL
+   * @param user Username
+   * @param url URL to close specific pool, or null to close all pools for the user
+   */
+  private void closeDBPool(String user, String url) throws SQLException {
     PoolingDriver poolingDriver = getJDBCConfiguration(user).removeDBDriverPool();
     if (poolingDriver != null) {
-      poolingDriver.closePool(DEFAULT_KEY + user);
+      if (url != null && !url.isEmpty()) {
+        // Close specific pool for this URL
+        String poolName = DEFAULT_KEY + user + "_" + url.replaceAll("[^a-zA-Z0-9]", "_");
+        poolingDriver.closePool(poolName);
+        LOGGER.info("Closed pool for user: {}, url: {}", user, url);
+      } else {
+        // Close all pools for this user
+        // Get all pool names and close those that match this user
+        String[] poolNames = poolingDriver.getPoolNames();
+        String userPrefix = DEFAULT_KEY + user;
+        for (String poolName : poolNames) {
+          if (poolName.startsWith(userPrefix)) {
+            poolingDriver.closePool(poolName);
+            LOGGER.info("Closed pool: {}", poolName);
+          }
+        }
+        LOGGER.info("Closed all pools for user: {}", user);
+      }
     }
   }
 
@@ -564,13 +595,14 @@ public class JDBCInterpreter extends KerberosInterpreter {
     poolableConnectionFactory.setPool(connectionPool);
     Class.forName(driverClass);
     PoolingDriver driver = new PoolingDriver();
-    driver.registerPool(DEFAULT_KEY + user, connectionPool);
+    String poolName = DEFAULT_KEY + user + "_" + url.replaceAll("[^a-zA-Z0-9]", "_");
+    driver.registerPool(poolName, connectionPool);
     getJDBCConfiguration(user).saveDBDriverPool(driver);
   }
 
   private Connection getConnectionFromPool(String url, String user,
       Properties properties) throws SQLException, ClassNotFoundException {
-    String jdbcDriver = getJDBCDriverName(user);
+    String jdbcDriver = getJDBCDriverName(user, url);
 
     if (!getJDBCConfiguration(user).isConnectionInDBDriverPool()) {
       createConnectionPool(url, user, properties);
