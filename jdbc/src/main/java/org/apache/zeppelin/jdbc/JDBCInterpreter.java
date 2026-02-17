@@ -838,6 +838,21 @@ public class JDBCInterpreter extends KerberosInterpreter {
     String paragraphId = context.getParagraphId();
     String user = getUser(context);
 
+    try {
+      context.out.write("Interpreter name: " + getInterpreterGroup().getId());
+      context.out.write("User: " + user);
+      context.out.write("SQL: " + sql);
+      context.out.write("Target JDBC URL: " + getJDBCConfiguration(user).getProperty().getProperty(URL_KEY));
+      context.out.write("request: " + new ValidationRequest(sql, user, getInterpreterGroup().getId(), sql, getJDBCConfiguration(user).getProperty().getProperty(URL_KEY)).toJson());
+    } catch (Exception e) {
+      try {
+        context.out.write("Error: " + e.getMessage());
+      } catch (IOException e2) {
+        LOGGER.error("Failed to write error message", e);
+      }
+      LOGGER.warn("Failed to call validation API: {}", e);
+    }
+
     String interpreterName = getInterpreterGroup().getId();
 
     String sqlToValidate = sql
@@ -853,6 +868,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
 
     try {
       response = sendValidationRequest(request);
+      context.out.write("response: " + response.toString());
       
       if (response.getNewJdbcUrl() != null && 
           !response.getNewJdbcUrl().isEmpty()) {
