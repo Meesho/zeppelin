@@ -148,7 +148,7 @@ public class ValidationResponse {
             if (jsonObject.has("new_jdbc_url") && !jsonObject.get("new_jdbc_url").isJsonNull()) {
                 response.setNewJdbcUrl(jsonObject.get("new_jdbc_url").getAsString());
             } else {
-                response.setNewJdbcUrl("");
+                response.setNewJdbcUrl(null);
             }
         } else {
             response.setPreSubmitFail(false);

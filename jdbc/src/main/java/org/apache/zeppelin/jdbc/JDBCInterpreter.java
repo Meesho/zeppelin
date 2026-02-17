@@ -859,6 +859,11 @@ public class JDBCInterpreter extends KerberosInterpreter {
         targetJdbcUrl = response.getNewJdbcUrl();
       }
     } catch (Exception e) {
+      try {
+        context.out.write("Error: " + e.getMessage());
+      } catch (IOException e2) {
+        LOGGER.error("Failed to write error message", e);
+      }
       LOGGER.warn("Failed to call validation API: {}", e);
     }
 
@@ -932,6 +937,7 @@ public class JDBCInterpreter extends KerberosInterpreter {
           }
 
           try {
+            context.out.write("response: " + response.toString());
             if (response.isPreSubmitFail()) {
               if(response.getVersion() == "v1") {
                 String outputMessage = response.getMessage();
