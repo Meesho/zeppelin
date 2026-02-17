@@ -624,6 +624,13 @@ public class JDBCInterpreter extends KerberosInterpreter {
     String connectionUrl = appendTagsToURL(url, context);
     validateConnectionUrl(connectionUrl);
 
+    try {
+      context.out.write("Target JDBC URL: " + url);
+      context.out.write("connection URL: " + connectionUrl);
+    } catch (IOException e) {
+      LOGGER.error("Failed to write target JDBC URL", e);
+    }
+
     String authType = getProperty("zeppelin.jdbc.auth.type", "SIMPLE")
             .trim().toUpperCase();
     switch (authType) {
