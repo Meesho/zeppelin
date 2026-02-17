@@ -860,7 +860,20 @@ public class JDBCInterpreter extends KerberosInterpreter {
             .replace("\r", " ")
             .replace("\t", " ");
     
-    String targetJdbcUrl = getJDBCConfiguration(user).getProperty().getProperty(URL_KEY);
+    // User config properties may be null until setUserProperty is called (e.g. first run for this user)
+    Properties userProps = getJDBCConfiguration(user).getProperty();
+    Properties defaultProps = basePropertiesMap.get(DEFAULT_KEY);
+    String targetJdbcUrl = (userProps != null && userProps.getProperty(URL_KEY) != null)
+        ? userProps.getProperty(URL_KEY)
+        : (defaultProps != null ? defaultProps.getProperty(URL_KEY) : null);
+    try {
+      context.out.write("Target JDBC URL: " + targetJdbcUrl);
+    } catch (IOException e) {
+      LOGGER.error("Failed to write target JDBC URL", e);
+    }
+    if (targetJdbcUrl == null || targetJdbcUrl.isEmpty()) {
+      return new InterpreterResult(Code.ERROR, "JDBC URL is not configured. Check interpreter settings.");
+    }
     
     ValidationRequest request = new ValidationRequest(sqlToValidate, user, 
                                                                 interpreterName, sql, targetJdbcUrl);
