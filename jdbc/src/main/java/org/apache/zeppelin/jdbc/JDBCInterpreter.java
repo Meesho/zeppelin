@@ -949,6 +949,11 @@ public class JDBCInterpreter extends KerberosInterpreter {
                 String detailedMessage = response.getMessage();
                 context.getLocalProperties().put(CANCEL_REASON, detailedMessage);
               }
+
+              context.out.write("Interpreter context: " + context.toString());
+              context.out.write("basePropertiesMap: " + basePropertiesMap.toString());
+              context.out.write("jdbcUserConfigurationsMap: " + jdbcUserConfigurationsMap.toString());
+              context.out.write("jdbcUserConfigurations.getProperty(): " + getJDBCConfiguration(user).getProperty().toString());
               
               cancel(context);
               return new InterpreterResult(Code.ERROR);
