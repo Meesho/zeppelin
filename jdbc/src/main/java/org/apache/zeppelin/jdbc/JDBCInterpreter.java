@@ -838,21 +838,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
     String paragraphId = context.getParagraphId();
     String user = getUser(context);
 
-    try {
-      context.out.write("Interpreter name: " + getInterpreterGroup().getId());
-      context.out.write("User: " + user);
-      context.out.write("SQL: " + sql);
-      context.out.write("Target JDBC URL: " + getJDBCConfiguration(user).getProperty().getProperty(URL_KEY));
-      context.out.write("request: " + new ValidationRequest(sql, user, getInterpreterGroup().getId(), sql, getJDBCConfiguration(user).getProperty().getProperty(URL_KEY)).toJson());
-    } catch (Exception e) {
-      try {
-        context.out.write("Error: " + e.getMessage());
-      } catch (IOException e2) {
-        LOGGER.error("Failed to write error message", e);
-      }
-      LOGGER.warn("Failed to call validation API: {}", e);
-    }
-
     String interpreterName = getInterpreterGroup().getId();
 
     String sqlToValidate = sql
@@ -861,38 +846,32 @@ public class JDBCInterpreter extends KerberosInterpreter {
             .replace("\t", " ");
     
     // User config properties may be null until setUserProperty is called (e.g. first run for this user)
-    Properties userProps = getJDBCConfiguration(user).getProperty();
     Properties defaultProps = basePropertiesMap.get(DEFAULT_KEY);
-    String targetJdbcUrl = (userProps != null && userProps.getProperty(URL_KEY) != null)
-        ? userProps.getProperty(URL_KEY)
-        : (defaultProps != null ? defaultProps.getProperty(URL_KEY) : null);
+    String targetJdbcUrl = (defaultProps != null ? defaultProps.getProperty(URL_KEY) : null);
+
     try {
       context.out.write("Target JDBC URL: " + targetJdbcUrl);
     } catch (IOException e) {
       LOGGER.error("Failed to write target JDBC URL", e);
     }
-    if (targetJdbcUrl == null || targetJdbcUrl.isEmpty()) {
-      return new InterpreterResult(Code.ERROR, "JDBC URL is not configured. Check interpreter settings.");
-    }
-    
+
     ValidationRequest request = new ValidationRequest(sqlToValidate, user, 
                                                                 interpreterName, sql, targetJdbcUrl);
     ValidationResponse response = null;
 
     try {
       response = sendValidationRequest(request);
-      context.out.write("response: " + response.toString());
       
       if (response.getNewJdbcUrl() != null && 
           !response.getNewJdbcUrl().isEmpty()) {
         targetJdbcUrl = response.getNewJdbcUrl();
       }
-    } catch (Exception e) {
       try {
-        context.out.write("Error: " + e.getMessage());
-      } catch (IOException e2) {
-        LOGGER.error("Failed to write error message", e);
+        context.out.write("New Target JDBC URL: " + targetJdbcUrl);
+      } catch (IOException e) {
+        LOGGER.error("Failed to write target JDBC URL", e);
       }
+    } catch (Exception e) {
       LOGGER.warn("Failed to call validation API: {}", e);
     }
 
@@ -966,7 +945,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
           }
 
           try {
-            context.out.write("response: " + response.toString());
             if (response.isPreSubmitFail()) {
               if(response.getVersion() == "v1") {
                 String outputMessage = response.getMessage();
