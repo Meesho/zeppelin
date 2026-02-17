@@ -608,6 +608,14 @@ public class JDBCInterpreter extends KerberosInterpreter {
         ? overrideUrl 
         : properties.getProperty(URL_KEY);
     
+    try {
+      context.out.write("Target JDBC URL: " + url);
+      context.out.write("Override URL: " + overrideUrl);
+      context.out.write("Properties: " + properties.toString());
+    } catch (IOException e) {
+      LOGGER.error("Failed to write target JDBC URL", e);
+    }
+    
     if (overrideUrl != null && !overrideUrl.isEmpty()) {
       LOGGER.info("Using override URL for this paragraph");
     }
@@ -849,12 +857,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
     Properties defaultProps = basePropertiesMap.get(DEFAULT_KEY);
     String targetJdbcUrl = (defaultProps != null ? defaultProps.getProperty(URL_KEY) : null);
 
-    try {
-      context.out.write("Target JDBC URL: " + targetJdbcUrl);
-    } catch (IOException e) {
-      LOGGER.error("Failed to write target JDBC URL", e);
-    }
-
     ValidationRequest request = new ValidationRequest(sqlToValidate, user, 
                                                                 interpreterName, sql, targetJdbcUrl);
     ValidationResponse response = null;
@@ -865,11 +867,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
       if (response.getNewJdbcUrl() != null && 
           !response.getNewJdbcUrl().isEmpty()) {
         targetJdbcUrl = response.getNewJdbcUrl();
-      }
-      try {
-        context.out.write("New Target JDBC URL: " + targetJdbcUrl);
-      } catch (IOException e) {
-        LOGGER.error("Failed to write target JDBC URL", e);
       }
     } catch (Exception e) {
       LOGGER.warn("Failed to call validation API: {}", e);
