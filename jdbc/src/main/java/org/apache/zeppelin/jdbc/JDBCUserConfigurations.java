@@ -20,10 +20,10 @@ import org.apache.zeppelin.user.UsernamePassword;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * UserConfigurations for JDBC impersonation.
@@ -37,7 +37,7 @@ public class JDBCUserConfigurations {
 
   public JDBCUserConfigurations() {
     paragraphIdStatementMap = new HashMap<>();
-    registeredPools = new HashSet<>();
+    registeredPools = ConcurrentHashMap.newKeySet();
   }
 
   public void initStatementMap() throws SQLException {
