@@ -94,6 +94,22 @@ public class JDBCUserConfigurations {
     this.isSuccessful = false;
   }
 
+  /**
+   * Returns the current PoolingDriver without removing it.
+   * Use this when you need to close a single named pool without discarding all pool state.
+   */
+  public PoolingDriver getPoolingDriver() {
+    return this.poolingDriver;
+  }
+
+  /**
+   * Removes a single pool name from the registered set.
+   * Does NOT clear the PoolingDriver reference — other pools remain accessible.
+   */
+  public void removePoolName(String poolName) {
+    this.registeredPools.remove(poolName);
+  }
+
   public PoolingDriver removeDBDriverPool() throws SQLException {
     this.isSuccessful = null;
     this.registeredPools.clear();

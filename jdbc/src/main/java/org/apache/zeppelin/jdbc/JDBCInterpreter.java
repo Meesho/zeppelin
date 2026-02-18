@@ -43,6 +43,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -436,17 +439,31 @@ public class JDBCInterpreter extends KerberosInterpreter {
     }
   }
 
-  private String getJDBCDriverName(String user, String url) {
-    StringBuffer driverName = new StringBuffer();
-    driverName.append(DBCP_STRING);
-    driverName.append(DEFAULT_KEY);
-    driverName.append(user);
-    // Add sanitized URL to make pool key unique per URL
-    if (url != null && !url.isEmpty()) {
-      String sanitizedUrl = url.replaceAll("[^a-zA-Z0-9]", "_");
-      driverName.append("_").append(sanitizedUrl);
+  /**
+   * Builds a stable, compact pool name for the given user+url combination.
+   * Uses the first 16 hex chars of the SHA-256 hash of the URL so the name is
+   * safe for use as a DBCP pool key regardless of special characters in the URL.
+   */
+  static String buildPoolName(String user, String url) {
+    String urlHash;
+    try {
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      byte[] hash = md.digest(url.getBytes(StandardCharsets.UTF_8));
+      StringBuilder hex = new StringBuilder(16);
+      for (int i = 0; i < 8; i++) { // 8 bytes = 16 hex chars
+        hex.append(String.format("%02x", hash[i]));
+      }
+      urlHash = hex.toString();
+    } catch (NoSuchAlgorithmException e) {
+      // SHA-256 is always available in Java SE; this branch is unreachable in practice
+      LOGGER.warn("SHA-256 not available, falling back to sanitized URL for pool name");
+      urlHash = url.replaceAll("[^a-zA-Z0-9]", "_");
     }
-    return driverName.toString();
+    return DEFAULT_KEY + user + "_" + urlHash;
+  }
+
+  private String getJDBCDriverName(String user, String url) {
+    return DBCP_STRING + buildPoolName(user, url);
   }
 
   private boolean existAccountInBaseProperty(String propertyKey) {
@@ -485,22 +502,36 @@ public class JDBCInterpreter extends KerberosInterpreter {
    * @param url URL to close specific pool, or null to close all pools for the user
    */
   private void closeDBPool(String user, String url) throws SQLException {
-    PoolingDriver poolingDriver = getJDBCConfiguration(user).removeDBDriverPool();
-    if (poolingDriver != null) {
-      if (url != null && !url.isEmpty()) {
-        // Close specific pool for this URL
-        String poolName = DEFAULT_KEY + user + "_" + url.replaceAll("[^a-zA-Z0-9]", "_");
-        poolingDriver.closePool(poolName);
-        LOGGER.info("Closed pool for user: {}, url: {}", user, url);
-      } else {
-        // Close all pools for this user
-        // Get all pool names and close those that match this user
+    if (url != null && !url.isEmpty()) {
+      // Close only the pool for this specific URL.
+      // We use getPoolingDriver() (non-destructive) so that other pools registered
+      // for this user remain accessible — avoids the pool-leak bug where
+      // removeDBDriverPool() would orphan all other pools.
+      String poolName = buildPoolName(user, url);
+      PoolingDriver driver = getJDBCConfiguration(user).getPoolingDriver();
+      if (driver != null) {
+        try {
+          driver.closePool(poolName);
+          LOGGER.info("Closed pool for user: {}, url: {}", user, url);
+        } catch (Exception e) {
+          LOGGER.warn("Could not close pool '{}': {}", poolName, e.getMessage());
+        }
+        getJDBCConfiguration(user).removePoolName(poolName);
+      }
+    } else {
+      // Close all pools for this user and remove the driver reference.
+      PoolingDriver poolingDriver = getJDBCConfiguration(user).removeDBDriverPool();
+      if (poolingDriver != null) {
         String[] poolNames = poolingDriver.getPoolNames();
         String userPrefix = DEFAULT_KEY + user;
         for (String poolName : poolNames) {
           if (poolName.startsWith(userPrefix)) {
-            poolingDriver.closePool(poolName);
-            LOGGER.info("Closed pool: {}", poolName);
+            try {
+              poolingDriver.closePool(poolName);
+              LOGGER.info("Closed pool: {}", poolName);
+            } catch (Exception e) {
+              LOGGER.warn("Could not close pool '{}': {}", poolName, e.getMessage());
+            }
           }
         }
         LOGGER.info("Closed all pools for user: {}", user);
@@ -594,15 +625,23 @@ public class JDBCInterpreter extends KerberosInterpreter {
 
     poolableConnectionFactory.setPool(connectionPool);
     Class.forName(driverClass);
-    PoolingDriver driver = new PoolingDriver();
-    String poolName = DEFAULT_KEY + user + "_" + url.replaceAll("[^a-zA-Z0-9]", "_");
+
+    // Reuse the existing PoolingDriver if one has already been registered for this user,
+    // rather than creating a new instance each time. All PoolingDriver instances share the
+    // same global DBCP registry, so creating multiple instances is wasteful and makes
+    // cleanup harder (removeDBDriverPool only retains the last reference).
+    PoolingDriver driver = getJDBCConfiguration(user).getPoolingDriver();
+    if (driver == null) {
+      driver = new PoolingDriver();
+    }
+    String poolName = buildPoolName(user, url);
     driver.registerPool(poolName, connectionPool);
     getJDBCConfiguration(user).saveDBDriverPool(driver, poolName);
   }
 
   private Connection getConnectionFromPool(String url, String user,
       Properties properties) throws SQLException, ClassNotFoundException {
-    String poolName = DEFAULT_KEY + user + "_" + url.replaceAll("[^a-zA-Z0-9]", "_");
+    String poolName = buildPoolName(user, url);
     String jdbcDriver = getJDBCDriverName(user, url);
 
     if (!getJDBCConfiguration(user).isConnectionInDBDriverPool(poolName)) {
@@ -866,6 +905,8 @@ public class JDBCInterpreter extends KerberosInterpreter {
   private InterpreterResult executeSql(String sql,
       InterpreterContext context) throws InterpreterException {
     Connection connection = null;
+    // Track the URL used to open the current connection so we can detect URL changes
+    String currentConnectionUrl = null;
     Statement statement;
     ResultSet resultSet = null;
     String paragraphId = context.getParagraphId();
@@ -912,20 +953,34 @@ public class JDBCInterpreter extends KerberosInterpreter {
           LOGGER.warn("Failed to call validation API: {}", e.getMessage());
         }
 
-        // Get or create connection for this URL if needed
+        // Get or create connection for this URL if needed.
+        // We compare against currentConnectionUrl (set when we opened the connection)
         try {
-          // Close existing connection if URL changed
-          if (connection != null && !connection.isClosed()) {
-            String currentUrl = connection.getMetaData().getURL();
-            if (targetJdbcUrl != null && !currentUrl.equals(targetJdbcUrl)) {
-              LOGGER.info("URL changed, closing old connection");
-              connection.close();
-              connection = null;
+          boolean urlChanged = targetJdbcUrl != null
+              && !targetJdbcUrl.equals(currentConnectionUrl);
+
+          if (urlChanged && connection != null && !connection.isClosed()) {
+            LOGGER.info("URL changed from '{}' to '{}', closing old connection",
+                currentConnectionUrl, targetJdbcUrl);
+            // Commit any pending DML (INSERT/UPDATE/UPSERT) before returning this
+            // connection to the pool. Without this, an open transaction from the
+            // previous statement would be inherited by the next pool borrower.
+            try {
+              if (!connection.getAutoCommit()) {
+                connection.commit();
+              }
+            } catch (SQLException commitEx) {
+              LOGGER.warn("Could not commit before URL switch for user: {}, error: {}",
+                  user, commitEx.getMessage());
             }
+            connection.close();
+            connection = null;
+            currentConnectionUrl = null;
           }
-          
+
           if (connection == null || connection.isClosed()) {
             connection = getConnection(context, targetJdbcUrl);
+            currentConnectionUrl = targetJdbcUrl;
           }
         } catch (IllegalArgumentException e) {
           LOGGER.error("Cannot run " + sqlToExecute, e);
