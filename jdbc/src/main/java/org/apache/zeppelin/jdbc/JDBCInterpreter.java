@@ -873,52 +873,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
 
     String interpreterName = getInterpreterGroup().getId();
 
-    String sqlToValidate = sql
-            .replace("\n", " ")
-            .replace("\r", " ")
-            .replace("\t", " ");
-    
-    // User config properties may be null until setUserProperty is called (e.g. first run for this user)
-    Properties defaultProps = basePropertiesMap.get(DEFAULT_KEY);
-    String targetJdbcUrl = (defaultProps != null ? defaultProps.getProperty(URL_KEY) : null);
-
-    ValidationRequest request = new ValidationRequest(sqlToValidate, user, 
-                                                                interpreterName, sql, targetJdbcUrl);
-    ValidationResponse response = null;
-
-    try {
-      response = sendValidationRequest(request);
-      
-      if (response.getNewJdbcUrl() != null && 
-          !response.getNewJdbcUrl().isEmpty()) {
-        targetJdbcUrl = response.getNewJdbcUrl();
-      }
-    } catch (Exception e) {
-      LOGGER.warn("Failed to call validation API: {}", e);
-    }
-
-    try {
-      connection = getConnection(context, targetJdbcUrl);
-    } catch (IllegalArgumentException e) {
-      LOGGER.error("Cannot run " + sql, e);
-      return new InterpreterResult(Code.ERROR, "Connection URL contains improper configuration");
-    } catch (Exception e) {
-      LOGGER.error("Fail to getConnection", e);
-      try {
-        closeDBPool(user);
-      } catch (SQLException e1) {
-        LOGGER.error("Cannot close DBPool for user: " + user , e1);
-      }
-      if (e instanceof SQLException) {
-        return new InterpreterResult(Code.ERROR, e.getMessage());
-      } else {
-        return new InterpreterResult(Code.ERROR, ExceptionUtils.getStackTrace(e));
-      }
-    }
-    if (connection == null) {
-      return new InterpreterResult(Code.ERROR, "User's connection not found.");
-    }
-
     try {
       List<String>  sqlArray = sqlSplitter.splitSql(sql);
       for (String sqlToExecute : sqlArray) {
@@ -932,6 +886,67 @@ public class JDBCInterpreter extends KerberosInterpreter {
           sqlToExecute = sqlToExecute.trim();
         }
         LOGGER.info("Execute sql: " + sqlToExecute);
+        // Validate and get URL for THIS specific statement
+        String sqlToValidate = sqlToExecute
+                .replace("\n", " ")
+                .replace("\r", " ")
+                .replace("\t", " ");
+        
+        // User config properties may be null until setUserProperty is called (e.g. first run for this user)
+        Properties defaultProps = basePropertiesMap.get(DEFAULT_KEY);
+        String targetJdbcUrl = (defaultProps != null ? defaultProps.getProperty(URL_KEY) : null);
+
+        ValidationRequest request = new ValidationRequest(sqlToValidate, user, 
+                                                                    interpreterName, sqlToExecute, targetJdbcUrl);
+        ValidationResponse response = null;
+
+        try {
+          response = sendValidationRequest(request);
+          
+          if (response.getNewJdbcUrl() != null && 
+              !response.getNewJdbcUrl().isEmpty()) {
+            targetJdbcUrl = response.getNewJdbcUrl();
+            LOGGER.info("Validation API returned new JDBC URL for statement");
+          }
+        } catch (Exception e) {
+          LOGGER.warn("Failed to call validation API: {}", e.getMessage());
+        }
+
+        // Get or create connection for this URL if needed
+        try {
+          // Close existing connection if URL changed
+          if (connection != null && !connection.isClosed()) {
+            String currentUrl = connection.getMetaData().getURL();
+            if (targetJdbcUrl != null && !currentUrl.equals(targetJdbcUrl)) {
+              LOGGER.info("URL changed, closing old connection");
+              connection.close();
+              connection = null;
+            }
+          }
+          
+          if (connection == null || connection.isClosed()) {
+            connection = getConnection(context, targetJdbcUrl);
+          }
+        } catch (IllegalArgumentException e) {
+          LOGGER.error("Cannot run " + sqlToExecute, e);
+          return new InterpreterResult(Code.ERROR, "Connection URL contains improper configuration");
+        } catch (Exception e) {
+          LOGGER.error("Fail to getConnection", e);
+          try {
+            closeDBPool(user);
+          } catch (SQLException e1) {
+            LOGGER.error("Cannot close DBPool for user: " + user , e1);
+          }
+          if (e instanceof SQLException) {
+            return new InterpreterResult(Code.ERROR, e.getMessage());
+          } else {
+            return new InterpreterResult(Code.ERROR, ExceptionUtils.getStackTrace(e));
+          }
+        }
+        
+        if (connection == null) {
+          return new InterpreterResult(Code.ERROR, "User's connection not found.");
+        }
         statement = connection.createStatement();
 
         if (interpreterName != null && interpreterName.startsWith("spark_rca_")) {
