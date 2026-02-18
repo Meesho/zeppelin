@@ -20,8 +20,10 @@ import org.apache.zeppelin.user.UsernamePassword;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * UserConfigurations for JDBC impersonation.
@@ -29,11 +31,13 @@ import java.util.Properties;
 public class JDBCUserConfigurations {
   private final Map<String, Statement> paragraphIdStatementMap;
   private PoolingDriver poolingDriver;
+  private final Set<String> registeredPools;
   private Properties properties;
   private Boolean isSuccessful;
 
   public JDBCUserConfigurations() {
     paragraphIdStatementMap = new HashMap<>();
+    registeredPools = new HashSet<>();
   }
 
   public void initStatementMap() throws SQLException {
@@ -45,6 +49,7 @@ public class JDBCUserConfigurations {
 
   public void initConnectionPoolMap() throws SQLException {
     this.poolingDriver = null;
+    this.registeredPools.clear();
     this.isSuccessful = null;
   }
 
@@ -83,8 +88,15 @@ public class JDBCUserConfigurations {
     this.isSuccessful = false;
   }
 
+  public void saveDBDriverPool(PoolingDriver driver, String poolName) throws SQLException {
+    this.poolingDriver = driver;
+    this.registeredPools.add(poolName);
+    this.isSuccessful = false;
+  }
+
   public PoolingDriver removeDBDriverPool() throws SQLException {
     this.isSuccessful = null;
+    this.registeredPools.clear();
     PoolingDriver tmp = poolingDriver;
     this.poolingDriver = null;
     return tmp;
@@ -92,6 +104,10 @@ public class JDBCUserConfigurations {
 
   public boolean isConnectionInDBDriverPool() {
     return this.poolingDriver != null;
+  }
+
+  public boolean isConnectionInDBDriverPool(String poolName) {
+    return this.poolingDriver != null && this.registeredPools.contains(poolName);
   }
 
   public void setConnectionInDBDriverPoolSuccessful() {

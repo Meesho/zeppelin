@@ -597,14 +597,15 @@ public class JDBCInterpreter extends KerberosInterpreter {
     PoolingDriver driver = new PoolingDriver();
     String poolName = DEFAULT_KEY + user + "_" + url.replaceAll("[^a-zA-Z0-9]", "_");
     driver.registerPool(poolName, connectionPool);
-    getJDBCConfiguration(user).saveDBDriverPool(driver);
+    getJDBCConfiguration(user).saveDBDriverPool(driver, poolName);
   }
 
   private Connection getConnectionFromPool(String url, String user,
       Properties properties) throws SQLException, ClassNotFoundException {
+    String poolName = DEFAULT_KEY + user + "_" + url.replaceAll("[^a-zA-Z0-9]", "_");
     String jdbcDriver = getJDBCDriverName(user, url);
 
-    if (!getJDBCConfiguration(user).isConnectionInDBDriverPool()) {
+    if (!getJDBCConfiguration(user).isConnectionInDBDriverPool(poolName)) {
       createConnectionPool(url, user, properties);
     }
     return DriverManager.getConnection(jdbcDriver);
@@ -640,14 +641,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
         ? overrideUrl 
         : properties.getProperty(URL_KEY);
     
-    try {
-      context.out.write("Target JDBC URL: " + url);
-      context.out.write("Override URL: " + overrideUrl);
-      context.out.write("Properties: " + properties.toString());
-    } catch (IOException e) {
-      LOGGER.error("Failed to write target JDBC URL", e);
-    }
-    
     if (overrideUrl != null && !overrideUrl.isEmpty()) {
       LOGGER.info("Using override URL for this paragraph");
     }
@@ -655,13 +648,6 @@ public class JDBCInterpreter extends KerberosInterpreter {
     url = appendProxyUserToURL(url, user);
     String connectionUrl = appendTagsToURL(url, context);
     validateConnectionUrl(connectionUrl);
-
-    try {
-      context.out.write("Target JDBC URL: " + url);
-      context.out.write("connection URL: " + connectionUrl);
-    } catch (IOException e) {
-      LOGGER.error("Failed to write target JDBC URL", e);
-    }
 
     String authType = getProperty("zeppelin.jdbc.auth.type", "SIMPLE")
             .trim().toUpperCase();
