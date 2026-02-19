@@ -14,6 +14,8 @@
 
 // import globally uses css here
 import 'github-markdown-css/github-markdown.css';
+import 'ng-sortable';
+import 'ng-sortable/dist/ng-sortable.css';
 
 import './app/app.js';
 import './app/app.controller.js';
