@@ -16,11 +16,15 @@ public class ValidationRequest {
     @SerializedName("raw_query_text")
     private String rawQueryText;
 
-    public ValidationRequest(String queryText, String user, String interpreterName, String rawQueryText) {
+    @SerializedName("raw_jdbc_url")
+    private String rawJdbcUrl;
+
+    public ValidationRequest(String queryText, String user, String interpreterName, String rawQueryText, String rawJdbcUrl) {
         this.queryText = queryText;
         this.user = user;
         this.interpreterName = interpreterName;
         this.rawQueryText = rawQueryText;
+        this.rawJdbcUrl = rawJdbcUrl;
     }
 
     public String toJson() {
