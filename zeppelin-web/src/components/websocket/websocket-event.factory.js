@@ -22,8 +22,10 @@ function WebsocketEventFactory($rootScope, $websocket, $location, baseUrlSrv, sa
   const uniqueClientId = Math.random().toString(36).substring(2, 7);
   let lastMsgIdSeqSent = 0;
 
-  websocketCalls.ws = $websocket(baseUrlSrv.getWebsocketUrl());
-  websocketCalls.ws.reconnectIfNotNormalClose = true;
+  websocketCalls.ws = $websocket(baseUrlSrv.getWebsocketUrl(), null, {
+    reconnectIfNotNormalClose: true,
+    useApplyAsync: true,
+  });
 
   websocketCalls.ws.onOpen(function() {
     console.log('Websocket created');
