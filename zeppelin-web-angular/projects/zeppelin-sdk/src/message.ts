@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-import {interval, Observable, Subject, Subscription} from 'rxjs';
+import {interval, Observable, of, Subject, Subscription} from 'rxjs';
 import {delay, filter, map, mergeMap, retryWhen, take} from 'rxjs/operators';
 import {webSocket, WebSocketSubject} from 'rxjs/webSocket';
 
@@ -47,6 +47,8 @@ export class Message {
   private wsSubscription = new Subscription();
   private reconnectSubscription = new Subscription();
   private destroyed = false;
+  private intentionalClose = false;
+  private wsGeneration = 0;
   private wsUrl: string;
   private ticket: Ticket;
   private uniqueClientId = Math.random().toString(36).substring(2, 7);
@@ -66,7 +68,6 @@ export class Message {
       this.connectedStatus = false;
       this.connectedStatus$.next(this.connectedStatus);
       this.pingIntervalSubscription.unsubscribe();
-      this.scheduleReconnect();
     });
   }
 
@@ -95,21 +96,29 @@ export class Message {
   }
 
   connect() {
+    this.intentionalClose = false;
     this.reconnectSubscription.unsubscribe();
     this.wsSubscription.unsubscribe();
     if (this.ws) {
       try {
         this.ws.complete();
-      } catch {
+      } catch (e) {
         // ignore if already completed/errored
       }
       this.ws = null;
     }
 
+    const generation = ++this.wsGeneration;
+
     this.ws = webSocket({
       url: this.wsUrl,
-      openObserver: this.open$,
-      closeObserver: this.close$
+      openObserver: { next: () => this.open$.next(null) },
+      closeObserver: {
+        next: (event: CloseEvent) => {
+          this.close$.next(event);
+          this.scheduleReconnect(generation);
+        }
+      }
     });
 
     this.wsSubscription = this.ws.subscribe(
@@ -119,20 +128,20 @@ export class Message {
       },
       err => {
         console.warn('WebSocket error:', err);
-        this.scheduleReconnect();
+        this.scheduleReconnect(generation);
       }
     );
   }
 
-  private scheduleReconnect(): void {
-    if (this.destroyed || !this.wsUrl) {
+  private scheduleReconnect(fromGeneration: number): void {
+    if (this.destroyed || !this.wsUrl || this.intentionalClose || fromGeneration !== this.wsGeneration) {
       return;
     }
     this.reconnectSubscription.unsubscribe();
     this.reconnectSubscription = of(null)
       .pipe(delay(this.reconnectDelayMs))
       .subscribe(() => {
-        if (!this.destroyed && this.wsUrl) {
+        if (!this.destroyed && this.wsUrl && !this.intentionalClose && fromGeneration === this.wsGeneration) {
           this.connect();
         }
       });
@@ -143,10 +152,11 @@ export class Message {
   }
 
   close() {
+    this.intentionalClose = true;
     if (this.ws) {
       try {
         this.ws.complete();
-      } catch {
+      } catch (e) {
         // ignore if already completed/errored
       }
     }
@@ -218,13 +228,14 @@ export class Message {
 
   destroy(): void {
     this.destroyed = true;
+    this.intentionalClose = true;
     this.reconnectSubscription.unsubscribe();
     this.wsSubscription.unsubscribe();
     this.pingIntervalSubscription.unsubscribe();
     if (this.ws) {
       try {
         this.ws.complete();
-      } catch {
+      } catch (e) {
         // ignore
       }
       this.ws = null;
