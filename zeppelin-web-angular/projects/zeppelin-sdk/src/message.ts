@@ -44,11 +44,16 @@ export class Message {
   private sent$ = new Subject<WebSocketMessage<keyof MessageSendDataTypeMap>>();
   private received$ = new Subject<WebSocketMessage<keyof MessageReceiveDataTypeMap>>();
   private pingIntervalSubscription = new Subscription();
+  private wsSubscription = new Subscription();
+  private reconnectSubscription = new Subscription();
+  private destroyed = false;
   private wsUrl: string;
   private ticket: Ticket;
   private uniqueClientId = Math.random().toString(36).substring(2, 7);
   private lastMsgIdSeqSent = 0;
-  private readonly normalCloseCode = 1000;
+
+  /** Delay in ms before attempting to reconnect after connection closes. */
+  private readonly reconnectDelayMs = 4000;
 
   constructor() {
     this.open$.subscribe(() => {
@@ -57,15 +62,11 @@ export class Message {
       this.pingIntervalSubscription.unsubscribe();
       this.pingIntervalSubscription = interval(1000 * 10).subscribe(() => this.ping());
     });
-    this.close$.subscribe(event => {
+    this.close$.subscribe(() => {
       this.connectedStatus = false;
       this.connectedStatus$.next(this.connectedStatus);
       this.pingIntervalSubscription.unsubscribe();
-
-      if (event.code !== this.normalCloseCode) {
-        console.log('WebSocket closed unexpectedly. Reconnecting...');
-        this.connect();
-      }
+      this.scheduleReconnect();
     });
   }
 
@@ -94,29 +95,46 @@ export class Message {
   }
 
   connect() {
+    this.reconnectSubscription.unsubscribe();
+    this.wsSubscription.unsubscribe();
+    if (this.ws) {
+      try {
+        this.ws.complete();
+      } catch {
+        // ignore if already completed/errored
+      }
+      this.ws = null;
+    }
+
     this.ws = webSocket({
       url: this.wsUrl,
       openObserver: this.open$,
       closeObserver: this.close$
     });
 
-    this.ws
-      .pipe(
-        // reconnect
-        retryWhen(errors =>
-          errors.pipe(
-            mergeMap(() =>
-              this.close$.pipe(
-                take(1),
-                delay(4000)
-              )
-            )
-          )
-        )
-      )
-      .subscribe((e: WebSocketMessage<keyof MessageReceiveDataTypeMap>) => {
+    this.wsSubscription = this.ws.subscribe(
+      (e: WebSocketMessage<keyof MessageReceiveDataTypeMap>) => {
         console.log('Receive:', e);
         this.received$.next(this.interceptReceived(e));
+      },
+      err => {
+        console.warn('WebSocket error:', err);
+        this.scheduleReconnect();
+      }
+    );
+  }
+
+  private scheduleReconnect(): void {
+    if (this.destroyed || !this.wsUrl) {
+      return;
+    }
+    this.reconnectSubscription.unsubscribe();
+    this.reconnectSubscription = of(null)
+      .pipe(delay(this.reconnectDelayMs))
+      .subscribe(() => {
+        if (!this.destroyed && this.wsUrl) {
+          this.connect();
+        }
       });
   }
 
@@ -125,7 +143,13 @@ export class Message {
   }
 
   close() {
-    this.close$.next();
+    if (this.ws) {
+      try {
+        this.ws.complete();
+      } catch {
+        // ignore if already completed/errored
+      }
+    }
   }
 
   opened(): Observable<Event> {
@@ -193,8 +217,18 @@ export class Message {
   }
 
   destroy(): void {
-    this.ws.complete();
-    this.ws = null;
+    this.destroyed = true;
+    this.reconnectSubscription.unsubscribe();
+    this.wsSubscription.unsubscribe();
+    this.pingIntervalSubscription.unsubscribe();
+    if (this.ws) {
+      try {
+        this.ws.complete();
+      } catch {
+        // ignore
+      }
+      this.ws = null;
+    }
   }
 
   getHomeNote(): void {
