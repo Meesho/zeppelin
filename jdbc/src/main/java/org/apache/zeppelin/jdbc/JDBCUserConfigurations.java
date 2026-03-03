@@ -22,6 +22,8 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * UserConfigurations for JDBC impersonation.
@@ -29,11 +31,13 @@ import java.util.Properties;
 public class JDBCUserConfigurations {
   private final Map<String, Statement> paragraphIdStatementMap;
   private PoolingDriver poolingDriver;
+  private final Set<String> registeredPools;
   private Properties properties;
   private Boolean isSuccessful;
 
   public JDBCUserConfigurations() {
     paragraphIdStatementMap = new HashMap<>();
+    registeredPools = ConcurrentHashMap.newKeySet();
   }
 
   public void initStatementMap() throws SQLException {
@@ -45,6 +49,7 @@ public class JDBCUserConfigurations {
 
   public void initConnectionPoolMap() throws SQLException {
     this.poolingDriver = null;
+    this.registeredPools.clear();
     this.isSuccessful = null;
   }
 
@@ -83,8 +88,31 @@ public class JDBCUserConfigurations {
     this.isSuccessful = false;
   }
 
+  public void saveDBDriverPool(PoolingDriver driver, String poolName) throws SQLException {
+    this.poolingDriver = driver;
+    this.registeredPools.add(poolName);
+    this.isSuccessful = false;
+  }
+
+  /**
+   * Returns the current PoolingDriver without removing it.
+   * Use this when you need to close a single named pool without discarding all pool state.
+   */
+  public PoolingDriver getPoolingDriver() {
+    return this.poolingDriver;
+  }
+
+  /**
+   * Removes a single pool name from the registered set.
+   * Does NOT clear the PoolingDriver reference — other pools remain accessible.
+   */
+  public void removePoolName(String poolName) {
+    this.registeredPools.remove(poolName);
+  }
+
   public PoolingDriver removeDBDriverPool() throws SQLException {
     this.isSuccessful = null;
+    this.registeredPools.clear();
     PoolingDriver tmp = poolingDriver;
     this.poolingDriver = null;
     return tmp;
@@ -92,6 +120,10 @@ public class JDBCUserConfigurations {
 
   public boolean isConnectionInDBDriverPool() {
     return this.poolingDriver != null;
+  }
+
+  public boolean isConnectionInDBDriverPool(String poolName) {
+    return this.poolingDriver != null && this.registeredPools.contains(poolName);
   }
 
   public void setConnectionInDBDriverPoolSuccessful() {

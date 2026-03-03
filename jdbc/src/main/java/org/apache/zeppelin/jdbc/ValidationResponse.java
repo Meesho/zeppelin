@@ -13,6 +13,8 @@ public class ValidationResponse {
     private String version;
     private String rawQueryText;
     private String newQueryText;
+    private String rawJdbcUrl;
+    private String newJdbcUrl;
 
     // Getters and Setters
     public boolean isPreSubmitFail() {
@@ -79,6 +81,22 @@ public class ValidationResponse {
         this.newQueryText = newQueryText;
     }
 
+    public String getRawJdbcUrl() {
+        return rawJdbcUrl;
+    }
+
+    public void setRawJdbcUrl(String rawJdbcUrl) {
+        this.rawJdbcUrl = rawJdbcUrl;
+    }
+
+    public String getNewJdbcUrl() {
+        return newJdbcUrl;
+    }
+
+    public void setNewJdbcUrl(String newJdbcUrl) {
+        this.newJdbcUrl = newJdbcUrl;
+    }
+
     public static ValidationResponse fromJson(String jsonResponse) {
         Gson gson = new Gson();
         ValidationResponse response = new ValidationResponse();
@@ -122,6 +140,16 @@ public class ValidationResponse {
             } else {
                 response.setNewQueryText(null);
             }
+            if (jsonObject.has("raw_jdbc_url") && !jsonObject.get("raw_jdbc_url").isJsonNull()) {
+                response.setRawJdbcUrl(jsonObject.get("raw_jdbc_url").getAsString());
+            } else {
+                response.setRawJdbcUrl("");
+            }
+            if (jsonObject.has("new_jdbc_url") && !jsonObject.get("new_jdbc_url").isJsonNull()) {
+                response.setNewJdbcUrl(jsonObject.get("new_jdbc_url").getAsString());
+            } else {
+                response.setNewJdbcUrl(null);
+            }
         } else {
             response.setPreSubmitFail(false);
             response.setFailFast(false);
@@ -131,6 +159,8 @@ public class ValidationResponse {
             response.setVersion("v1"); // Default version
             response.setRawQueryText("");
             response.setNewQueryText(null);
+            response.setRawJdbcUrl("");
+            response.setNewJdbcUrl(null);
         }
         return response;
     }
