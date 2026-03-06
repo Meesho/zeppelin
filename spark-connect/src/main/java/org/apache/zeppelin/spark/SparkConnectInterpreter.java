@@ -76,7 +76,11 @@ public class SparkConnectInterpreter extends AbstractInterpreter {
   }
 
   @Override
-  public void open() throws InterpreterException {
+  public synchronized void open() throws InterpreterException {
+    if (sparkSession != null) {
+      return;
+    }
+
     try {
       currentUser = getUserName();
       if (StringUtils.isBlank(currentUser)) {

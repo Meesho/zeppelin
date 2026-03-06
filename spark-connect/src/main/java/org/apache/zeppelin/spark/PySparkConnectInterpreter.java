@@ -101,11 +101,27 @@ public class PySparkConnectInterpreter extends PythonInterpreter {
 
   @Override
   protected String getPythonExec() {
-    String pythonExec = getProperty("zeppelin.python", "python");
+    String pythonExec = getProperty("zeppelin.python", "");
     if (StringUtils.isNotBlank(pythonExec)) {
       return pythonExec;
     }
-    return "python";
+    return resolvePythonBinary();
+  }
+
+  private String resolvePythonBinary() {
+    for (String candidate : new String[]{"python3", "python"}) {
+      try {
+        Process p = new ProcessBuilder(candidate, "--version")
+            .redirectErrorStream(true).start();
+        int exit = p.waitFor();
+        if (exit == 0) {
+          LOGGER.info("Resolved Python binary: {}", candidate);
+          return candidate;
+        }
+      } catch (Exception ignored) {
+      }
+    }
+    return "python3";
   }
 
   /**

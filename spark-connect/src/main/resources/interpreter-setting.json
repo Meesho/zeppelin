@@ -132,7 +132,7 @@
       "zeppelin.python": {
         "envName": "ZEPPELIN_PYTHON",
         "propertyName": "zeppelin.python",
-        "defaultValue": "python",
+        "defaultValue": "python3",
         "description": "Python executable command",
         "type": "string"
       },
@@ -151,6 +151,18 @@
         "type": "number"
       }
     },
+    "editor": {
+      "language": "python",
+      "editOnDblClick": false,
+      "completionKey": "TAB",
+      "completionSupport": true
+    }
+  },
+  {
+    "group": "spark-connect",
+    "name": "ipyspark",
+    "className": "org.apache.zeppelin.spark.IPySparkConnectInterpreter",
+    "properties": {},
     "editor": {
       "language": "python",
       "editOnDblClick": false,
