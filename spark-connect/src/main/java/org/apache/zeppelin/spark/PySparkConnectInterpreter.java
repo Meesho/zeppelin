@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -58,6 +59,12 @@ public class PySparkConnectInterpreter extends PythonInterpreter {
     // Ensure the Java SparkSession is ready before starting Python
     sparkConnectInterpreter.open();
 
+    // Log Python executable resolution (matching Spark's behavior)
+    String pythonExec = getPythonExec();
+    LOGGER.info("Python executable resolved: {}", pythonExec);
+
+    // Call super.open() - let PythonInterpreter handle Python process launch
+    // This matches Spark's PySparkInterpreter behavior - no pre-validation
     super.open();
 
     if (!useIPython()) {
@@ -100,28 +107,104 @@ public class PySparkConnectInterpreter extends PythonInterpreter {
   }
 
   @Override
-  protected String getPythonExec() {
-    String pythonExec = getProperty("zeppelin.python", "");
-    if (StringUtils.isNotBlank(pythonExec)) {
-      return pythonExec;
-    }
-    return resolvePythonBinary();
+  protected Map<String, String> setupPythonEnv() throws IOException {
+    Map<String, String> env = super.setupPythonEnv();
+    
+    // Set PYSPARK_PYTHON environment variable (following Spark's pattern)
+    // This ensures Python subprocesses can find the correct Python executable
+    String pythonExec = getPythonExec();
+    env.put("PYSPARK_PYTHON", pythonExec);
+    LOGGER.info("Set PYSPARK_PYTHON: {}", pythonExec);
+    
+    // Set up LD_LIBRARY_PATH for conda installations
+    // This is critical - conda Python binaries depend on libraries in conda/lib
+    setupCondaLibraryPath(env, pythonExec);
+    
+    LOGGER.info("LD_LIBRARY_PATH: {}", env.get("LD_LIBRARY_PATH"));
+    return env;
   }
 
-  private String resolvePythonBinary() {
-    for (String candidate : new String[]{"python3", "python"}) {
-      try {
-        Process p = new ProcessBuilder(candidate, "--version")
-            .redirectErrorStream(true).start();
-        int exit = p.waitFor();
-        if (exit == 0) {
-          LOGGER.info("Resolved Python binary: {}", candidate);
-          return candidate;
+  /**
+   * Get Python executable following Spark's PySpark detection pattern exactly:
+   * 1. spark.pyspark.driver.python (from Spark Connect properties)
+   * 2. spark.pyspark.python (from Spark Connect properties)
+   * 3. PYSPARK_DRIVER_PYTHON (environment variable)
+   * 4. PYSPARK_PYTHON (environment variable)
+   * 5. zeppelin.python (Zeppelin property) - if set, validate it
+   * 6. Default to "python" (let system PATH handle it, just like Spark does)
+   * 
+   * This matches Spark's PySparkInterpreter.getPythonExec() behavior.
+   * Spark defaults to "python" and relies on system PATH - we do the same.
+   */
+  @Override
+  protected String getPythonExec() {
+    // Priority 1: spark.pyspark.driver.python (Spark Connect property)
+    String driverPython = getProperty("spark.pyspark.driver.python", "");
+    if (StringUtils.isNotBlank(driverPython)) {
+      LOGGER.info("Using Python executable from spark.pyspark.driver.python: {}", driverPython);
+      // Don't validate here - let ProcessBuilder fail naturally if invalid
+      // This matches Spark's behavior - it trusts the configuration
+      return driverPython;
+    }
+    
+    // Priority 2: spark.pyspark.python (Spark Connect property)
+    String pysparkPython = getProperty("spark.pyspark.python", "");
+    if (StringUtils.isNotBlank(pysparkPython)) {
+      LOGGER.info("Using Python executable from spark.pyspark.python: {}", pysparkPython);
+      return pysparkPython;
+    }
+    
+    // Priority 3: PYSPARK_DRIVER_PYTHON (environment variable)
+    String envDriverPython = System.getenv("PYSPARK_DRIVER_PYTHON");
+    if (StringUtils.isNotBlank(envDriverPython)) {
+      LOGGER.info("Using Python executable from PYSPARK_DRIVER_PYTHON: {}", envDriverPython);
+      return envDriverPython;
+    }
+    
+    // Priority 4: PYSPARK_PYTHON (environment variable)
+    String envPysparkPython = System.getenv("PYSPARK_PYTHON");
+    if (StringUtils.isNotBlank(envPysparkPython)) {
+      LOGGER.info("Using Python executable from PYSPARK_PYTHON: {}", envPysparkPython);
+      return envPysparkPython;
+    }
+    
+    // Priority 5: zeppelin.python (Zeppelin property) - only if explicitly set
+    String zeppelinPython = getProperty("zeppelin.python", "");
+    if (StringUtils.isNotBlank(zeppelinPython)) {
+      LOGGER.info("Using Python executable from zeppelin.python property: {}", zeppelinPython);
+      return zeppelinPython;
+    }
+    
+    // Priority 6: Default to "python" (let system PATH handle it, just like Spark)
+    // Spark's PySparkInterpreter defaults to "python" - we do the same
+    // This relies on system PATH to find Python, no explicit path needed
+    LOGGER.info("No Python executable configured, defaulting to 'python' (will use system PATH)");
+    return "python";
+  }
+  
+  private void setupCondaLibraryPath(Map<String, String> env, String pythonExec) {
+    // If python path contains "/conda/", add conda lib to LD_LIBRARY_PATH
+    // This only applies if an explicit conda path is configured
+    if (pythonExec != null && pythonExec.contains("/conda/")) {
+      // Extract conda base path (e.g., /opt/conda/default from /opt/conda/default/bin/python3)
+      int binIndex = pythonExec.indexOf("/bin/");
+      if (binIndex > 0) {
+        String condaBase = pythonExec.substring(0, binIndex);
+        String condaLib = condaBase + "/lib";
+        java.io.File libDir = new java.io.File(condaLib);
+        if (libDir.exists() && libDir.isDirectory()) {
+          String ldLibraryPath = env.getOrDefault("LD_LIBRARY_PATH", "");
+          if (ldLibraryPath.isEmpty()) {
+            env.put("LD_LIBRARY_PATH", condaLib);
+          } else if (!ldLibraryPath.contains(condaLib)) {
+            env.put("LD_LIBRARY_PATH", condaLib + ":" + ldLibraryPath);
+          }
+          LOGGER.info("Added conda lib directory to LD_LIBRARY_PATH: {}", condaLib);
         }
-      } catch (Exception ignored) {
       }
     }
-    return "python3";
+    // If using "python" from PATH, don't modify LD_LIBRARY_PATH
+    // Let the system handle it - Python should already be configured correctly
   }
 
   /**

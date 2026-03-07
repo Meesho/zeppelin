@@ -129,11 +129,25 @@
         "description": "Spark application name",
         "type": "string"
       },
+      "spark.pyspark.driver.python": {
+        "envName": "PYSPARK_DRIVER_PYTHON",
+        "propertyName": "spark.pyspark.driver.python",
+        "defaultValue": "",
+        "description": "Python executable to use for PySpark driver (highest priority). Follows Spark's PySpark detection pattern.",
+        "type": "string"
+      },
+      "spark.pyspark.python": {
+        "envName": "PYSPARK_PYTHON",
+        "propertyName": "spark.pyspark.python",
+        "defaultValue": "",
+        "description": "Python executable to use for PySpark (second priority). Can also be set via PYSPARK_PYTHON environment variable.",
+        "type": "string"
+      },
       "zeppelin.python": {
         "envName": "ZEPPELIN_PYTHON",
         "propertyName": "zeppelin.python",
-        "defaultValue": "python3",
-        "description": "Python executable command",
+        "defaultValue": "",
+        "description": "Python executable command (optional fallback). If not set, defaults to 'python' and uses system PATH (matching Spark's PySpark behavior).",
         "type": "string"
       },
       "zeppelin.pyspark.connect.useIPython": {
