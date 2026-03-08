@@ -78,6 +78,8 @@ public class SparkConnectInterpreter extends AbstractInterpreter {
   @Override
   public synchronized void open() throws InterpreterException {
     if (sparkSession != null) {
+      LOGGER.warn("open() called but sparkSession is already active — skipping. " +
+          "Call close() first to restart the interpreter.");
       return;
     }
 
@@ -106,6 +108,17 @@ public class SparkConnectInterpreter extends AbstractInterpreter {
       LOGGER.info("Connecting to Spark Connect server at: {}",
           remoteUrl.replaceAll("token=[^;]*", "token=[REDACTED]")
                    .replaceAll("user_id=[^;]*", "user_id=[REDACTED]"));
+
+      // Clear any cached active/default session on the Spark Connect client so that
+      // getOrCreate() always creates a fresh remote session rather than reusing the
+      // previous one that was closed during restart.
+      try {
+        SparkSession.clearActiveSession();
+        SparkSession.clearDefaultSession();
+        LOGGER.info("Cleared Spark Connect client-side active/default session cache");
+      } catch (Exception e) {
+        LOGGER.warn("Could not clear cached Spark sessions (non-fatal): {}", e.getMessage());
+      }
 
       SparkSession.Builder builder = SparkSession.builder().remote(remoteUrl);
 
@@ -152,14 +165,19 @@ public class SparkConnectInterpreter extends AbstractInterpreter {
 
   @Override
   public void close() throws InterpreterException {
+    LOGGER.info("Closing SparkConnectInterpreter for user: {} (sparkSession={})",
+        currentUser, sparkSession != null ? "active" : "null");
     if (sparkSession != null) {
       try {
         sparkSession.close();
         LOGGER.info("Spark Connect session closed for user: {}", currentUser);
       } catch (Exception e) {
         LOGGER.warn("Error closing Spark Connect session", e);
+      } finally {
+        sparkSession = null;
       }
-      sparkSession = null;
+    } else {
+      LOGGER.info("close() called but no active sparkSession — nothing to tear down");
     }
     if (sessionSlotAcquired) {
       releaseSessionSlot(currentUser);

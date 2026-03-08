@@ -103,8 +103,15 @@ public class IPySparkConnectInterpreter extends IPythonInterpreter {
 
   @Override
   public void close() throws InterpreterException {
-    LOGGER.info("Close IPySparkConnectInterpreter");
-    super.close();
+    LOGGER.info("Close IPySparkConnectInterpreter (opened={})", opened);
+    try {
+      super.close();
+    } finally {
+      opened = false;
+      sparkConnectInterpreter = null;
+      pySparkConnectInterpreter = null;
+      LOGGER.info("IPySparkConnectInterpreter closed and state reset — ready for re-open");
+    }
   }
 
   @Override
