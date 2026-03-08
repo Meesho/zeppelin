@@ -102,9 +102,10 @@ public class SparkConnectInterpreter extends AbstractInterpreter {
       LOGGER.info("Opening SparkConnectInterpreter for user: {} (session slot {}/{})",
           currentUser, userSessionCount.getOrDefault(currentUser, 0), maxSessions);
 
-      String remoteUrl = SparkConnectUtils.buildConnectionString(getProperties());
+      String remoteUrl = SparkConnectUtils.buildConnectionString(getProperties(), currentUser);
       LOGGER.info("Connecting to Spark Connect server at: {}",
-          remoteUrl.replaceAll("token=[^;]*", "token=[REDACTED]"));
+          remoteUrl.replaceAll("token=[^;]*", "token=[REDACTED]")
+                   .replaceAll("user_id=[^;]*", "user_id=[REDACTED]"));
 
       SparkSession.Builder builder = SparkSession.builder().remote(remoteUrl);
 

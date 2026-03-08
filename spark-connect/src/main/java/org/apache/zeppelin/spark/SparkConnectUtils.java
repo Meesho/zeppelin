@@ -40,13 +40,24 @@ public class SparkConnectUtils {
    * Build the Spark Connect connection string from interpreter properties.
    * Format: sc://hostname:port[/;param1=val1;param2=val2]
    *
-   * Supports: token, use_ssl, and any extra params already in the URI.
+   * Supports: token, use_ssl, user_id, and any extra params already in the URI.
    * Examples:
    *   sc://localhost:15002
-   *   sc://localhost:15002/;use_ssl=true;token=abc123
+   *   sc://localhost:15002/;use_ssl=true;token=abc123;user_id=alice
    *   sc://ranking-cluster-m:8080
    */
   public static String buildConnectionString(Properties properties) {
+    return buildConnectionString(properties, null);
+  }
+
+  /**
+   * Build the Spark Connect connection string, including user_id so the Spark Connect
+   * server can attribute the session to the correct user in its own UI.
+   *
+   * @param properties interpreter properties
+   * @param userName   the authenticated Zeppelin username; ignored if blank
+   */
+  public static String buildConnectionString(Properties properties, String userName) {
     String remote = properties.getProperty("spark.remote", "sc://localhost:15002");
     StringBuilder params = new StringBuilder();
 
@@ -59,6 +70,10 @@ public class SparkConnectUtils {
         properties.getProperty("spark.connect.use_ssl", "false"));
     if (useSsl) {
       params.append(";use_ssl=true");
+    }
+
+    if (StringUtils.isNotBlank(userName) && !remote.contains("user_id=")) {
+      params.append(";user_id=").append(userName);
     }
 
     if (params.length() > 0) {

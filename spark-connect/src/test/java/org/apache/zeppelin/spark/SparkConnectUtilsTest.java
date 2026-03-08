@@ -103,6 +103,47 @@ public class SparkConnectUtilsTest {
   }
 
   @Test
+  void testBuildConnectionStringWithUserName() {
+    Properties props = new Properties();
+    props.setProperty("spark.remote", "sc://cluster:8080");
+    String result = SparkConnectUtils.buildConnectionString(props, "alice");
+    assertEquals("sc://cluster:8080/;user_id=alice", result);
+  }
+
+  @Test
+  void testBuildConnectionStringWithUserNameAndToken() {
+    Properties props = new Properties();
+    props.setProperty("spark.remote", "sc://cluster:8080");
+    props.setProperty("spark.connect.token", "tok");
+    String result = SparkConnectUtils.buildConnectionString(props, "bob");
+    assertEquals("sc://cluster:8080/;token=tok;user_id=bob", result);
+  }
+
+  @Test
+  void testBuildConnectionStringUserIdAlreadyInUrl() {
+    Properties props = new Properties();
+    props.setProperty("spark.remote", "sc://cluster:8080/;user_id=preexisting");
+    String result = SparkConnectUtils.buildConnectionString(props, "alice");
+    assertEquals("sc://cluster:8080/;user_id=preexisting", result);
+  }
+
+  @Test
+  void testBuildConnectionStringNullUserName() {
+    Properties props = new Properties();
+    props.setProperty("spark.remote", "sc://cluster:8080");
+    String result = SparkConnectUtils.buildConnectionString(props, null);
+    assertEquals("sc://cluster:8080", result);
+  }
+
+  @Test
+  void testBuildConnectionStringBlankUserName() {
+    Properties props = new Properties();
+    props.setProperty("spark.remote", "sc://cluster:8080");
+    String result = SparkConnectUtils.buildConnectionString(props, "   ");
+    assertEquals("sc://cluster:8080", result);
+  }
+
+  @Test
   void testReplaceReservedChars() {
     assertEquals("hello world", SparkConnectUtils.replaceReservedChars("hello\tworld"));
     assertEquals("hello world", SparkConnectUtils.replaceReservedChars("hello\nworld"));
