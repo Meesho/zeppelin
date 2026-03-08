@@ -66,6 +66,7 @@ public class SparkConnectSqlInterpreter extends AbstractInterpreter {
 
   @Override
   public void close() throws InterpreterException {
+    sparkConnectInterpreter = null;
   }
 
   @Override

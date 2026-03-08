@@ -109,15 +109,16 @@ public class SparkConnectInterpreter extends AbstractInterpreter {
           remoteUrl.replaceAll("token=[^;]*", "token=[REDACTED]")
                    .replaceAll("user_id=[^;]*", "user_id=[REDACTED]"));
 
-      // Clear any cached active/default session on the Spark Connect client so that
-      // getOrCreate() always creates a fresh remote session rather than reusing the
-      // previous one that was closed during restart.
+      // Clear the thread-local active session on the Spark Connect client so that
+      // getOrCreate() creates a fresh remote session rather than reusing the previous
+      // closed one. We intentionally do NOT call clearDefaultSession() because that
+      // is a JVM-global operation and would disrupt other interpreter instances that
+      // are concurrently active in the same process.
       try {
         SparkSession.clearActiveSession();
-        SparkSession.clearDefaultSession();
-        LOGGER.info("Cleared Spark Connect client-side active/default session cache");
+        LOGGER.info("Cleared thread-local active Spark session (safe for multi-interpreter)");
       } catch (Exception e) {
-        LOGGER.warn("Could not clear cached Spark sessions (non-fatal): {}", e.getMessage());
+        LOGGER.warn("Could not clear active Spark session (non-fatal): {}", e.getMessage());
       }
 
       SparkSession.Builder builder = SparkSession.builder().remote(remoteUrl);
