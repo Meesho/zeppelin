@@ -301,5 +301,37 @@ class SparkConnectSession(object):
         return getattr(self._jsession, name)
 
 
+def pip_install(*packages):
+    """Install Python packages into the interpreter pod's environment.
+
+    Usage:
+        pip_install("requests")
+        pip_install("requests", "pandas", "numpy==1.24.0")
+        pip_install("requests>=2.28,<3.0")
+    """
+    import subprocess
+    if not packages:
+        print("Usage: pip_install('package1', 'package2', ...)")
+        return
+    cmd = [sys.executable, "-m", "pip", "install", "--quiet"] + list(packages)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        if result.returncode == 0:
+            installed = ", ".join(packages)
+            print("Successfully installed: %s" % installed)
+            if result.stdout.strip():
+                print(result.stdout.strip())
+        else:
+            print("pip install failed (exit code %d):" % result.returncode)
+            if result.stderr.strip():
+                print(result.stderr.strip())
+            if result.stdout.strip():
+                print(result.stdout.strip())
+    except subprocess.TimeoutExpired:
+        print("pip install timed out after 300 seconds")
+    except Exception as e:
+        print("pip install error: %s" % str(e))
+
+
 spark = SparkConnectSession(_jspark)
 sqlContext = sqlc = spark
