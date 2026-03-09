@@ -315,6 +315,8 @@ def pip_install(*packages):
         pip_install("requests>=2.28,<3.0")
     """
     import subprocess
+    import importlib
+    import site
     if not packages:
         print("Usage: pip_install('package1', 'package2', ...)")
         return
@@ -326,6 +328,10 @@ def pip_install(*packages):
             print("Successfully installed: %s" % installed)
             if result.stdout.strip():
                 print(result.stdout.strip())
+            importlib.invalidate_caches()
+            for new_path in site.getsitepackages() + [site.getusersitepackages()]:
+                if new_path not in sys.path:
+                    sys.path.insert(0, new_path)
         else:
             print("pip install failed (exit code %d):" % result.returncode)
             if result.stderr.strip():
