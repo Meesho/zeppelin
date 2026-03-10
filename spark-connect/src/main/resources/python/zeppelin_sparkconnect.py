@@ -33,16 +33,46 @@ _COLLECT_LIMIT_DEFAULT = _max_result
 _COLLECT_WARN_THRESHOLD = 100000
 
 
-def _rows_to_dicts(jrows, fields):
-    """Convert Java Row list to Python dicts without per-value Py4j round-trips."""
+class Row(tuple):
+    """Lightweight PySpark-compatible Row that wraps values extracted from Java Row objects."""
+
+    def __new__(cls, **kwargs):
+        row = tuple.__new__(cls, kwargs.values())
+        row.__dict__['_fields'] = tuple(kwargs.keys())
+        return row
+
+    def __repr__(self):
+        pairs = ", ".join("%s=%r" % (k, v) for k, v in zip(self._fields, self))
+        return "Row(%s)" % pairs
+
+    def __getattr__(self, name):
+        try:
+            idx = self._fields.index(name)
+            return self[idx]
+        except ValueError:
+            raise AttributeError("Row has no field '%s'" % name)
+
+    def asDict(self):
+        return dict(zip(self._fields, self))
+
+
+def _convert_java_row(jrow, col_names):
+    """Convert a single Java Row to a Python Row."""
+    values = {}
+    for i, col in enumerate(col_names):
+        val = jrow.get(i)
+        if hasattr(val, 'getClass'):
+            val = str(val)
+        values[col] = val
+    return Row(**values)
+
+
+def _convert_java_rows(jdf):
+    """Convert a Java Dataset's collected rows to Python Row objects."""
+    fields = jdf.schema().fields()
     col_names = [f.name() for f in fields]
-    result = []
-    for row in jrows:
-        d = {}
-        for i, col in enumerate(col_names):
-            d[col] = row.get(i)
-        result.append(d)
-    return result
+    jrows = jdf.collectAsList()
+    return [_convert_java_row(r, col_names) for r in jrows]
 
 
 class SparkConnectDataFrame(object):
@@ -56,7 +86,7 @@ class SparkConnectDataFrame(object):
         print(intp.formatDataFrame(self._jdf, effective_n))
 
     def collect(self, limit=None):
-        """Collect rows to the driver. Applies a safety limit to prevent OOM.
+        """Collect rows to the driver as Python Row objects.
 
         Args:
             limit: Max rows to collect. Defaults to zeppelin.spark.maxResult.
@@ -71,11 +101,11 @@ class SparkConnectDataFrame(object):
                     "Collecting %d rows to driver. This may cause OOM. "
                     "Consider using .limit() or .toPandas() with a smaller subset."
                     % row_count)
-            return list(self._jdf.collectAsList())
-        return list(self._jdf.limit(limit).collectAsList())
+            return _convert_java_rows(self._jdf)
+        return _convert_java_rows(self._jdf.limit(limit))
 
     def take(self, n):
-        return list(self._jdf.limit(n).collectAsList())
+        return _convert_java_rows(self._jdf.limit(n))
 
     def head(self, n=1):
         rows = self.take(n)
@@ -240,8 +270,7 @@ class SparkConnectDataFrame(object):
 
     def __iter__(self):
         """Safe iteration with default limit to prevent OOM."""
-        rows = self._jdf.limit(_COLLECT_LIMIT_DEFAULT).collectAsList()
-        return iter(rows)
+        return iter(_convert_java_rows(self._jdf.limit(_COLLECT_LIMIT_DEFAULT)))
 
     def __len__(self):
         return int(self._jdf.count())
@@ -342,6 +371,18 @@ def pip_install(*packages):
         print("pip install timed out after 300 seconds")
     except Exception as e:
         print("pip install error: %s" % str(e))
+
+
+def display(obj, n=20):
+    """Databricks-compatible display function.
+
+    For SparkConnectDataFrame, renders as Zeppelin %table format.
+    For other objects, falls back to print().
+    """
+    if isinstance(obj, SparkConnectDataFrame):
+        obj.show(n)
+    else:
+        print(obj)
 
 
 spark = SparkConnectSession(_jspark)
