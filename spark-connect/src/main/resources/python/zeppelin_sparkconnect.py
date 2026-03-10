@@ -75,6 +75,163 @@ def _convert_java_rows(jdf):
     return [_convert_java_row(r, col_names) for r in jrows]
 
 
+# ---------------------------------------------------------------------------
+# Py4j / type-conversion helpers for createDataFrame and __getattr__
+# ---------------------------------------------------------------------------
+
+def _is_java_object(obj):
+    """Check if obj is a Py4j proxy."""
+    return hasattr(obj, '_get_object_id')
+
+
+def _is_java_dataset(obj):
+    """Check if a Py4j proxy represents a Spark Dataset."""
+    if not _is_java_object(obj):
+        return False
+    try:
+        return 'Dataset' in obj.getClass().getName()
+    except Exception:
+        return False
+
+
+_PYSPARK_TO_JAVA_TYPES = {
+    'StringType': 'StringType',
+    'IntegerType': 'IntegerType',
+    'LongType': 'LongType',
+    'DoubleType': 'DoubleType',
+    'FloatType': 'FloatType',
+    'BooleanType': 'BooleanType',
+    'ShortType': 'ShortType',
+    'ByteType': 'ByteType',
+    'DateType': 'DateType',
+    'TimestampType': 'TimestampType',
+    'BinaryType': 'BinaryType',
+    'NullType': 'NullType',
+}
+
+
+def _pyspark_type_to_java(dt):
+    """Convert a PySpark DataType instance to a Java DataType via Py4j gateway."""
+    DataTypes = gateway.jvm.org.apache.spark.sql.types.DataTypes
+    type_name = type(dt).__name__
+    if type_name in _PYSPARK_TO_JAVA_TYPES:
+        return getattr(DataTypes, _PYSPARK_TO_JAVA_TYPES[type_name])
+    if type_name == 'DecimalType':
+        return DataTypes.createDecimalType(dt.precision, dt.scale)
+    if type_name == 'ArrayType':
+        return DataTypes.createArrayType(
+            _pyspark_type_to_java(dt.elementType), dt.containsNull)
+    if type_name == 'MapType':
+        return DataTypes.createMapType(
+            _pyspark_type_to_java(dt.keyType),
+            _pyspark_type_to_java(dt.valueType), dt.valueContainsNull)
+    if type_name == 'StructType':
+        return _pyspark_schema_to_java(dt)
+    return DataTypes.StringType
+
+
+def _pyspark_schema_to_java(pyspark_schema):
+    """Convert a PySpark StructType to a Java StructType."""
+    DataTypes = gateway.jvm.org.apache.spark.sql.types.DataTypes
+    java_fields = gateway.jvm.java.util.ArrayList()
+    for field in pyspark_schema.fields:
+        jtype = _pyspark_type_to_java(field.dataType)
+        java_fields.add(DataTypes.createStructField(
+            field.name, jtype, getattr(field, 'nullable', True)))
+    return DataTypes.createStructType(java_fields)
+
+
+def _infer_java_type(value):
+    """Infer a Java DataType from a Python value."""
+    DataTypes = gateway.jvm.org.apache.spark.sql.types.DataTypes
+    if value is None:
+        return DataTypes.StringType
+    if isinstance(value, bool):
+        return DataTypes.BooleanType
+    if isinstance(value, int):
+        return DataTypes.LongType if abs(value) > 2147483647 else DataTypes.IntegerType
+    if isinstance(value, float):
+        return DataTypes.DoubleType
+    return DataTypes.StringType
+
+
+def _resolve_schema(schema, data):
+    """Resolve any schema representation to a Java StructType."""
+    if schema is None:
+        return _infer_schema(data)
+    if _is_java_object(schema):
+        return schema
+    if hasattr(schema, 'fields') and not _is_java_object(schema):
+        return _pyspark_schema_to_java(schema)
+    if isinstance(schema, str):
+        try:
+            return gateway.jvm.org.apache.spark.sql.types.StructType.fromDDL(schema)
+        except Exception:
+            raise ValueError("Cannot parse DDL schema: %s" % schema)
+    if isinstance(schema, (list, tuple)) and schema and isinstance(schema[0], str):
+        return _schema_from_names(schema, data)
+    raise ValueError("Unsupported schema type: %s" % type(schema).__name__)
+
+
+def _infer_schema(data):
+    """Infer a Java StructType from the first element of the data."""
+    if not data:
+        raise ValueError("Cannot infer schema from empty data without a schema")
+    DataTypes = gateway.jvm.org.apache.spark.sql.types.DataTypes
+    first = data[0]
+    if isinstance(first, Row):
+        names, values = list(first._fields), list(first)
+    elif isinstance(first, dict):
+        names, values = list(first.keys()), list(first.values())
+    elif isinstance(first, (list, tuple)):
+        names = ["_%d" % (i + 1) for i in range(len(first))]
+        values = list(first)
+    else:
+        names, values = ["value"], [first]
+    java_fields = gateway.jvm.java.util.ArrayList()
+    for i, name in enumerate(names):
+        java_fields.add(DataTypes.createStructField(
+            name, _infer_java_type(values[i] if i < len(values) else None), True))
+    return DataTypes.createStructType(java_fields)
+
+
+def _schema_from_names(col_names, data):
+    """Create a Java StructType from column name list, inferring types from data."""
+    DataTypes = gateway.jvm.org.apache.spark.sql.types.DataTypes
+    first = data[0] if data else None
+    java_fields = gateway.jvm.java.util.ArrayList()
+    for i, name in enumerate(col_names):
+        jtype = DataTypes.StringType
+        if first is not None:
+            val = None
+            if isinstance(first, (list, tuple)) and i < len(first):
+                val = first[i]
+            elif isinstance(first, dict):
+                val = first.get(name)
+            elif isinstance(first, Row) and i < len(first):
+                val = first[i]
+            if val is not None:
+                jtype = _infer_java_type(val)
+        java_fields.add(DataTypes.createStructField(name, jtype, True))
+    return DataTypes.createStructType(java_fields)
+
+
+def _to_java_rows(data, col_names):
+    """Convert Python data (list of Row/dict/tuple/list) to Java ArrayList<Row>."""
+    RowFactory = gateway.jvm.org.apache.spark.sql.RowFactory
+    java_rows = gateway.jvm.java.util.ArrayList()
+    for item in data:
+        if isinstance(item, Row):
+            java_rows.add(RowFactory.create(*list(item)))
+        elif isinstance(item, dict):
+            java_rows.add(RowFactory.create(*[item.get(c) for c in col_names]))
+        elif isinstance(item, (list, tuple)):
+            java_rows.add(RowFactory.create(*list(item)))
+        else:
+            java_rows.add(RowFactory.create(item))
+    return java_rows
+
+
 class SparkConnectDataFrame(object):
     """Wrapper around a Java Dataset<Row> with production-safe data retrieval."""
 
@@ -265,8 +422,82 @@ class SparkConnectDataFrame(object):
         except Exception:
             return "SparkConnectDataFrame[schema unavailable]"
 
+    def repartition(self, numPartitions, *cols):
+        if cols:
+            return SparkConnectDataFrame(self._jdf.repartition(numPartitions, *cols))
+        return SparkConnectDataFrame(self._jdf.repartition(numPartitions))
+
+    def coalesce(self, numPartitions):
+        return SparkConnectDataFrame(self._jdf.coalesce(numPartitions))
+
+    def toDF(self, *cols):
+        return SparkConnectDataFrame(self._jdf.toDF(*cols))
+
+    def unionByName(self, other, allowMissingColumns=False):
+        other_jdf = other._jdf if isinstance(other, SparkConnectDataFrame) else other
+        return SparkConnectDataFrame(
+            self._jdf.unionByName(other_jdf, allowMissingColumns))
+
+    def crossJoin(self, other):
+        other_jdf = other._jdf if isinstance(other, SparkConnectDataFrame) else other
+        return SparkConnectDataFrame(self._jdf.crossJoin(other_jdf))
+
+    def subtract(self, other):
+        other_jdf = other._jdf if isinstance(other, SparkConnectDataFrame) else other
+        return SparkConnectDataFrame(self._jdf.subtract(other_jdf))
+
+    def intersect(self, other):
+        other_jdf = other._jdf if isinstance(other, SparkConnectDataFrame) else other
+        return SparkConnectDataFrame(self._jdf.intersect(other_jdf))
+
+    def exceptAll(self, other):
+        other_jdf = other._jdf if isinstance(other, SparkConnectDataFrame) else other
+        return SparkConnectDataFrame(self._jdf.exceptAll(other_jdf))
+
+    def sample(self, withReplacement=None, fraction=None, seed=None):
+        if withReplacement is None and fraction is None:
+            raise ValueError("fraction must be specified")
+        if isinstance(withReplacement, float) and fraction is None:
+            fraction = withReplacement
+            withReplacement = False
+        if withReplacement is None:
+            withReplacement = False
+        if seed is not None:
+            return SparkConnectDataFrame(
+                self._jdf.sample(withReplacement, fraction, seed))
+        return SparkConnectDataFrame(
+            self._jdf.sample(withReplacement, fraction))
+
+    def dropna(self, how="any", thresh=None, subset=None):
+        na = self._jdf.na()
+        if thresh is not None:
+            if subset:
+                return SparkConnectDataFrame(na.drop(thresh, subset))
+            return SparkConnectDataFrame(na.drop(thresh))
+        if subset:
+            return SparkConnectDataFrame(na.drop(how, subset))
+        return SparkConnectDataFrame(na.drop(how))
+
+    def fillna(self, value, subset=None):
+        na = self._jdf.na()
+        if subset:
+            return SparkConnectDataFrame(na.fill(value, subset))
+        return SparkConnectDataFrame(na.fill(value))
+
+    @property
+    def write(self):
+        return self._jdf.write()
+
     def __getattr__(self, name):
-        return getattr(self._jdf, name)
+        attr = getattr(self._jdf, name)
+        if not callable(attr):
+            return attr
+        def _method_wrapper(*args, **kwargs):
+            result = attr(*args, **kwargs)
+            if _is_java_dataset(result):
+                return SparkConnectDataFrame(result)
+            return result
+        return _method_wrapper
 
     def __iter__(self):
         """Safe iteration with default limit to prevent OOM."""
@@ -292,17 +523,34 @@ class SparkConnectSession(object):
         return self._jsession.read()
 
     def createDataFrame(self, data, schema=None):
+        """Create a SparkConnectDataFrame from Python data.
+
+        Supports:
+            - data: list of Row, list of tuples, list of dicts, pandas DataFrame
+            - schema: PySpark StructType, list of column names, DDL string,
+                      Java StructType (Py4j proxy), or None (infer from data)
+        """
         try:
             import pandas as pd
             if isinstance(data, pd.DataFrame):
-                warnings.warn(
-                    "createDataFrame from pandas goes through Py4j serialization. "
-                    "For large DataFrames, consider writing to a temp table instead.")
+                if schema is None:
+                    schema = list(data.columns)
+                data = data.values.tolist()
         except ImportError:
             pass
-        if schema:
-            return SparkConnectDataFrame(self._jsession.createDataFrame(data, schema))
-        return SparkConnectDataFrame(self._jsession.createDataFrame(data))
+
+        if _is_java_object(data):
+            if schema is None:
+                return SparkConnectDataFrame(self._jsession.createDataFrame(data))
+            java_schema = _resolve_schema(schema, None)
+            return SparkConnectDataFrame(
+                self._jsession.createDataFrame(data, java_schema))
+
+        java_schema = _resolve_schema(schema, data)
+        col_names = [f.name() for f in java_schema.fields()]
+        java_rows = _to_java_rows(data, col_names)
+        return SparkConnectDataFrame(
+            self._jsession.createDataFrame(java_rows, java_schema))
 
     def range(self, start, end=None, step=1, numPartitions=None):
         if end is None:
